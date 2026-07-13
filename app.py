@@ -5,39 +5,93 @@ import math
 import ssl
 import random
 import time
+import os
+from PIL import Image
 
-# הגדרות עיצוב כלליות לאפליקציה יוקרתית
+# הגדרות עמוד יוקרתיות
 st.set_page_config(page_title="I&O Sports Analytics", page_icon="🏆", layout="centered")
 
-# עיצוב CSS מותאם אישית למראה כהה ויוקרתי (כחול עמוק וזהב)
+# ---------------------------------------------------------
+# עיצוב מותאם קצה (Custom Luxury UI CSS)
+# ---------------------------------------------------------
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    h1, h2, h3 { color: #f39c12 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .stButton>button {
-        background-color: #f39c12;
-        color: white;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 10px;
-        width: 100%;
-        border: none;
-        padding: 10px;
-        transition: 0.3s;
+    /* רקע כללי כהה ועמוק */
+    .stApp {
+        background-color: #0b0c10;
     }
-    .stButton>button:hover { background-color: #e67e22; color: white; }
+    
+    /* עיצוב כרטיסיות (Tabs) */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: #1f2833;
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid #45f3ff;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #ffffff !important;
+        font-weight: bold;
+        border-radius: 8px;
+        padding: 10px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #f39c12 !important;
+        color: #000000 !important;
+    }
+    
+    /* עיצוב שדות קלט (Inputs) */
+    div[data-baseweb="input"] {
+        background-color: #1f2833 !important;
+        border: 1px solid #45f3ff !important;
+        border-radius: 8px !important;
+    }
+    input {
+        color: #45f3ff !important;
+        font-weight: bold !important;
+    }
+    label {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* קופסת הדו"ח הסופי (The Verdict Box) */
     .report-box {
-        background-color: #1a1c23;
-        padding: 20px;
-        border-radius: 10px;
+        background: linear-gradient(145deg, #111625, #1a2238);
+        padding: 25px;
+        border-radius: 15px;
         border: 2px solid #f39c12;
+        box-shadow: 0 8px 32px 0 rgba(243, 156, 18, 0.2);
+        margin-top: 25px;
+    }
+    
+    /* כותרות סקשנים */
+    .section-title {
+        color: #f39c12;
+        font-size: 22px;
+        font-weight: bold;
+        border-bottom: 2px solid #f39c12;
+        padding-bottom: 5px;
         margin-top: 20px;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# מנועי שאיבת נתונים (API ו-Scraping)
+# טעינת הלוגו המטורף במרכז
+# ---------------------------------------------------------
+if os.path.exists("logo.jfif"):
+    img = Image.open("logo.jfif")
+    st.image(img, use_container_width=True)
+else:
+    st.markdown("<h1 style='text-align: center; color: #f39c12;'>I & O SPORTS ANALYTICS</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #7f8c8d;'>📈 הדיוק שלנו, הניצחון שלכם.</p>", unsafe_allow_html=True)
+
+st.write("")
+
+# ---------------------------------------------------------
+# מנועים מתמטיים (API, דיקסון-קולס, מונטה קרלו)
 # ---------------------------------------------------------
 def fetch_sterile_api_data(team_id, api_key):
     url = f"https://v3.football.api-sports.io/teams/statistics?league=39&season=2024&team={team_id}"
@@ -55,53 +109,35 @@ def fetch_sterile_api_data(team_id, api_key):
     except:
         return None
 
-# ---------------------------------------------------------
-# מנוע מונטה קרלו - קרנות
-# ---------------------------------------------------------
 def run_monte_carlo_corners():
     base_rate = 10.5 
     simulations = 10000
     c08, c911, c12p = 0, 0, 0
     over85, over95, over105 = 0, 0, 0
-    
     for _ in range(simulations):
         total_corners = sum(1 for _ in range(90) if random.random() < (base_rate / 90))
         if total_corners <= 8: c08 += 1
         elif 9 <= total_corners <= 11: c911 += 1
         else: c12p += 1
-        
         if total_corners > 8.5: over85 += 1
         if total_corners > 9.5: over95 += 1
         if total_corners > 10.5: over105 += 1
-        
-    return (
-        (c08/simulations)*100, 
-        (c911/simulations)*100, 
-        (c12p/simulations)*100,
-        (over85/simulations)*100,
-        (over95/simulations)*100, 
-        (over105/simulations)*100
-    )
+    return ((c08/simulations)*100, (c911/simulations)*100, (c12p/simulations)*100,
+            (over85/simulations)*100, (over95/simulations)*100, (over105/simulations)*100)
 
 # ---------------------------------------------------------
-# תצוגת לוגו וכותרת
+# ממשק המשתמש (UI)
 # ---------------------------------------------------------
-st.markdown("<h1 style='text-align: center; margin-bottom: 0px;'>I & O   S P O R T S   A N A L Y T I C S</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #7f8c8d; font-size: 18px;'>📈 הדיוק שלנו, הניצחון שלכם. | OMNI-PREDATOR V80.0</p>", unsafe_allow_html=True)
-st.write("---")
-
-# הזנת שמות קבוצות
 col1, col2 = st.columns(2)
 with col1:
     home_name = st.text_input("⚽ קבוצת הבית:", value="אנגליה")
 with col2:
     away_name = st.text_input("⚽ קבוצת החוץ:", value="ארגנטינה")
 
-is_critical = st.checkbox("🚨 משחק רגיש / קריטי? (גמר, נוקאאוט, מאבק ירידה קריטי)")
+is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / גמר / מאבק קריטי)")
 
-st.write("### 💵 הזנת יחסי ווינר (השאירו ריק לליין שאתם לא תוקפים)")
+st.markdown("<div class='section-title'>💵 הזנת יחסי ווינר בלייב</div>", unsafe_allow_html=True)
 
-# חלוקה לכרטיסיות הזנה נוחות למניעת בלבול
 tab1, tab2, tab3 = st.tabs(["📊 שוק 1X2 והנדיקאפ", "⚽ שערים ובראקטים", "📐 קרנות ומירוץ ל-5"])
 
 with tab1:
@@ -109,7 +145,6 @@ with tab1:
     w_1 = col_a.number_input("ניצחון בית (1):", min_value=1.0, step=0.05, value=None)
     w_x = col_b.number_input("תיקו (X):", min_value=1.0, step=0.05, value=None)
     w_2 = col_c.number_input("ניצחון חוץ (2):", min_value=1.0, step=0.05, value=None)
-    
     col_d, col_e, col_f = st.columns(3)
     w_h_minus1 = col_d.number_input(f"הנדיקאפ {home_name} -1:", min_value=1.0, step=0.05, value=None)
     w_h_x = col_e.number_input("הנדיקאפ תיקו (X):", min_value=1.0, step=0.05, value=None)
@@ -119,7 +154,6 @@ with tab2:
     col_g, col_h = st.columns(2)
     w_u25 = col_g.number_input("שערים מתחת 2.5:", min_value=1.0, step=0.05, value=None)
     w_o25 = col_h.number_input("שערים מעל 2.5:", min_value=1.0, step=0.05, value=None)
-    
     col_i, col_j, col_k = st.columns(3)
     w_b01 = col_i.number_input("שערים 0-1:", min_value=1.0, step=0.05, value=None)
     w_b23 = col_j.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=None)
@@ -130,15 +164,12 @@ with tab3:
     w_c08 = col_l.number_input("קרנות 0-8:", min_value=1.0, step=0.05, value=None)
     w_c911 = col_m.number_input("קרנות 9-11 (X):", min_value=1.0, step=0.05, value=None)
     w_c12p = col_n.number_input("קרנות 12+:", min_value=1.0, step=0.05, value=None)
-    
     col_o, col_p = st.columns(2)
     w_c_u95 = col_o.number_input("קרנות מתחת 9.5:", min_value=1.0, step=0.05, value=None)
     w_c_o95 = col_p.number_input("קרנות מעל 9.5:", min_value=1.0, step=0.05, value=None)
-    
     col_q, col_r = st.columns(2)
     w_c_u105 = col_q.number_input("קרנות מתחת 10.5:", min_value=1.0, step=0.05, value=None)
     w_c_o105 = col_r.number_input("קרנות מעל 10.5:", min_value=1.0, step=0.05, value=None)
-    
     col_s, col_t, col_u = st.columns(3)
     w_race_home = col_s.number_input(f"מירוץ ל-5 ({home_name}):", min_value=1.0, step=0.05, value=None)
     w_race_x = col_t.number_input("מירוץ ל-5 (תיקו):", min_value=1.0, step=0.05, value=None)
@@ -146,11 +177,8 @@ with tab3:
 
 st.write("")
 if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותחת"):
-    
     with st.spinner("מבצע חישובי סימולציה מורכבים ברקע..."):
-        time.sleep(1) # הדמיה של עיבוד נתונים מהיר
-        
-        # משיכת נתונים קשיחה (מנוע גיבוי)
+        time.sleep(0.8)
         api_key = "eb32c04ced27ba8ca18cded2adc4eb7b"
         home_data = fetch_sterile_api_data(33, api_key)
         away_data = fetch_sterile_api_data(49, api_key)
@@ -159,12 +187,10 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
         mu_away = (away_data["avg_goals_for"] + home_data["avg_goals_against"]) / 2 if away_data else 1.25
         rho = -0.05
         
-        # חוק הפחד
         if is_critical:
             lambda_home *= 0.85
             mu_away *= 0.85
             
-        # דיקסון-קולס
         def get_dc_prob(h, a, l, m, r):
             ph = (math.exp(-l) * (l**h)) / math.factorial(h)
             pa = (math.exp(-m) * (m**a)) / math.factorial(a)
@@ -179,21 +205,17 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
         prob_x = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if h == a) * 100
         prob_2 = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if a > h) * 100
         prob_away_plus_1 = prob_x + prob_2
-        
         prob_u25 = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if (h + a) < 2.5) * 100
         prob_o25 = 100 - prob_u25
-
         prob_b01 = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if 0 <= (h + a) <= 1) * 100
         prob_b23 = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if 2 <= (h + a) <= 3) * 100
         prob_b4p = sum(get_dc_prob(h, a, lambda_home, mu_away, rho) for h in range(6) for a in range(6) if (h + a) >= 4) * 100
 
-        # מונטה קרלו קרנות
         prob_c08, prob_c911, prob_c12p, prob_co85, prob_co95, prob_co105 = run_monte_carlo_corners()
         prob_cu95 = 100 - prob_co95
         prob_cu105 = 100 - prob_co105
         prob_race_home, prob_race_x, prob_race_away = 45.0, 10.0, 45.0
 
-        # איסוף הימורים
         all_bets = []
         def add_bet(market, selection, prob, current):
             if current:
@@ -224,13 +246,12 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
 
         all_bets.sort(key=lambda x: x["edge"], reverse=True)
 
-        # פלט הדו"ח
         st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.subheader("📋 פסק הדין הסופי - APEX VERDICT")
+        st.markdown("<h2 style='text-align: center; color: #f39c12; margin-top: 0;'>📋 פסק הדין הסופי - APEX VERDICT</h2>", unsafe_allow_html=True)
         st.write(f"📊 **תוחלת שערים מחושבת ($npxG$):** {lambda_home + mu_away:.2f}")
         st.write("---")
+        st.markdown("### 🌟 החמישייה הפותחת (הימורים עם ערך חיובי):")
         
-        st.write("### 🌟 החמישייה הפותחת (הימורים עם ערך חיובי):")
         if not all_bets:
             st.error("❌ המערכת לא מצאה אף הימור בעל ערך חיובי. חובה לדלג (SKIP)!")
         else:
@@ -238,9 +259,6 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
                 st.success(f"🎯 **[RANK {i}]** | **{bet['market']}**: {bet['selection']} | 📊 הסתברות: **{bet['prob']:.2f}%** | ווינר: **{bet['odds']:.2f}** | אדג': **+{bet['edge']:.2f}%**")
 
         st.write("---")
-        if w_c911:
-            st.warning("⛔ **[VETO]** הוחל איסור מוחלט על סימון X (9-11) בקרנות.")
-        if w_b23 and 1.80 <= w_b23 <= 1.85:
-            st.warning(f"⛔ **[VETO_185]** מלכודת 2-3 שערים הופעלה (יחס {w_b23:.2f}). נא להתרחק.")
-            
+        if w_c911: st.warning("⛔ **[VETO]** הוחל איסור מוחלט על סימון X (9-11) בקרנות.")
+        if w_b23 and 1.80 <= w_b23 <= 1.85: st.warning(f"⛔ **[VETO_185]** מלכודת 2-3 שערים הופעלה. נא להתרחק.")
         st.markdown("</div>", unsafe_allow_html=True)
