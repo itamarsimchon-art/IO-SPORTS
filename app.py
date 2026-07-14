@@ -7,6 +7,7 @@ import random
 import time
 import os
 import glob
+import base64
 from PIL import Image
 from datetime import datetime, timezone
 
@@ -14,7 +15,7 @@ from datetime import datetime, timezone
 st.set_page_config(page_title="I&O Sports Analytics", page_icon="🏆", layout="centered")
 
 # ---------------------------------------------------------
-# CSS אגרסיבי ומטריף - חלוניות סייבר זוהרות, טאבים ומותג יוקרתי
+# CSS אגרסיבי ומטריף - עיצוב סייבר נקי ויוקרתי
 # ---------------------------------------------------------
 st.markdown("""
     <style>
@@ -99,31 +100,23 @@ st.markdown("""
         margin-top: 30px;
     }
 
-    /* עיצוב כפתורי ליגה מותאמים אישית - כרטיסיות סייבר זוהרות */
-    .league-card button {
-        background: #111625 !important;
-        border: 2px solid #1f2937 !important;
-        border-radius: 15px !important;
-        padding: 20px 10px !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-        color: #ffffff !important;
-        transition: all 0.3s ease !important;
+    /* ⚽ סגנון תמונות עיגולי כדורגל ללא לחצני HTML שבירים */
+    .soccer-ball-img {
         display: block;
-        width: 100%;
-        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #1f2937;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transition: 0.3s;
     }
-    
-    /* אפקטים של תאורה וזוהר לכל כפתור בנפרד לפי המותג */
-    div.cl-card button:hover { border-color: #0044ff !important; box-shadow: 0 0 15px rgba(0, 68, 255, 0.6) !important; color: #0044ff !important; }
-    div.el-card button:hover { border-color: #ff5500 !important; box-shadow: 0 0 15px rgba(255, 85, 0, 0.6) !important; color: #ff5500 !important; }
-    div.pl-card button:hover { border-color: #9c27b0 !important; box-shadow: 0 0 15px rgba(156, 39, 176, 0.6) !important; color: #9c27b0 !important; }
-    div.es-card button:hover { border-color: #ffeb3b !important; box-shadow: 0 0 15px rgba(255, 235, 59, 0.6) !important; color: #ffeb3b !important; }
-    div.it-card button:hover { border-color: #00bcd4 !important; box-shadow: 0 0 15px rgba(0, 188, 212, 0.6) !important; color: #00bcd4 !important; }
-    div.de-card button:hover { border-color: #e91e63 !important; box-shadow: 0 0 15px rgba(233, 30, 99, 0.6) !important; color: #e91e63 !important; }
-    div.fr-card button:hover { border-color: #4caf50 !important; box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; color: #4caf50 !important; }
-    div.il-card button:hover { border-color: #f39c12 !important; box-shadow: 0 0 15px rgba(243, 156, 18, 0.6) !important; color: #f39c12 !important; }
-    div.wc-card button:hover { border-color: #00efff !important; box-shadow: 0 0 15px rgba(0, 239, 255, 0.6) !important; color: #00efff !important; }
+    .active-ball-img {
+        border-color: #f39c12 !important;
+        box-shadow: 0 0 18px rgba(243, 156, 18, 0.8) !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -131,9 +124,12 @@ st.markdown("""
 # טעינת הלוגו - צייד אוטומטי
 # ---------------------------------------------------------
 image_files = glob.glob("*.jfif") + glob.glob("*.jpg") + glob.glob("*.png") + glob.glob("*.jpeg")
-if image_files:
+known_leagues_images = ['cjampions.png', 'england.png', 'eropa.png', 'france.png', 'germany.png', 'israel.jpg', 'italia.jpg', 'mondeial.jpg', 'spain.png']
+filtered_logo_files = [f for f in image_files if f not in known_leagues_images]
+
+if filtered_logo_files:
     try:
-        img = Image.open(image_files[0])
+        img = Image.open(filtered_logo_files[0])
         st.image(img, use_container_width=True)
     except:
         st.markdown("<h1 style='text-align: center; color: #f39c12;'>I & O SPORTS ANALYTICS</h1>", unsafe_allow_html=True)
@@ -179,7 +175,7 @@ def fetch_games_by_league(sport_key):
 
 def auto_get_weather_multiplier(city):
     context = ssl._create_unverified_context()
-    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true" # ברירת מחדל לארץ
+    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true"
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, context=context, timeout=4) as response:
@@ -207,70 +203,53 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-# --- ממשק בחירת ליגות מעלף ומטריץ ---
-st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allowed_html=True)
+def get_base64_image(img_path):
+    if os.path.exists(img_path):
+        with open(img_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    return ""
 
-# מיפוי רשמי ומדויק כולל ליגת העל הישראלית
-leagues_map = {
-    "🏆 Champions League": "soccer_uefa_champs_league",
-    "🇪🇺 Europa League": "soccer_uefa_europa_league",
-    "🦁 Premier League": "soccer_epl",
-    "🇪🇸 La Liga": "soccer_spain_la_liga",
-    "🇮🇹 Serie A": "soccer_italy_serie_a",
-    "🇩🇪 Bundesliga": "soccer_germany_bundesliga",
-    "🇫🇷 Ligue 1": "soccer_france_ligue_one",
-    "🇮🇱 ליגת העל הישראלית": "soccer_israel_premier_league",
-    "🌍 World Cup / Euro": "soccer_fifa_world_cup"
-}
+# --- ממשק הליגות בצורת 9 עיגולי כדורגל מעלפים ---
+st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allow_html=True)
 
-# תצוגת מטריצת הליגות המעוצבת (3x3 עמודות עם Glow)
+if "selected_league" not in st.session_state:
+    st.session_state.selected_league = "soccer_israel_premier_league"
+
+def show_league_ball(title, sport_key, file_name):
+    b64 = get_base64_image(file_name)
+    is_active = st.session_state.selected_league == sport_key
+    active_class = "active-ball-img" if is_active else ""
+    
+    # הצגת התמונה בעיגול מושלם באופן בטוח
+    if b64:
+        st.markdown(f'<img src="data:image/png;base64,{b64}" class="soccer-ball-img {active_class}">', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div style="text-align:center; font-size:40px;">⚽</div>', unsafe_allow_html=True)
+        
+    # לחצן לחיצה רגיל ובטוח לחלוטין של Streamlit מתחת לתמונה
+    if st.button(title, key="btn_" + sport_key, use_container_width=True):
+        st.session_state.selected_league = sport_key
+        st.rerun()
+
+# הצגה סימטרית ב-3 עמודות
 col_l1, col_l2, col_l3 = st.columns(3)
+
 with col_l1:
-    st.markdown('<div class="league-card cl-card">', unsafe_allowed_html=True)
-    btn_cl = st.button("🏆 UEFA Champions League", key="cl")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card es-card">', unsafe_allowed_html=True)
-    btn_es = st.button("🇪🇸 La Liga", key="es")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card fr-card">', unsafe_allowed_html=True)
-    btn_fr = st.button("🇫🇷 Ligue 1", key="fr")
-    st.markdown('</div>', unsafe_allowed_html=True)
+    show_league_ball("Champions League", "soccer_uefa_champs_league", "cjampions.png")
+    show_league_ball("La Liga", "soccer_spain_la_liga", "spain.png")
+    show_league_ball("Ligue 1", "soccer_france_ligue_one", "france.png")
 
 with col_l2:
-    st.markdown('<div class="league-card el-card">', unsafe_allowed_html=True)
-    btn_el = st.button("🇪🇺 UEFA Europa League", key="el")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card it-card">', unsafe_allowed_html=True)
-    btn_it = st.button("🇮🇹 Serie A", key="it")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card il-card">', unsafe_allowed_html=True)
-    btn_il = st.button("🇮🇱 ליגת העל הישראלית", key="il")
-    st.markdown('</div>', unsafe_allowed_html=True)
+    show_league_ball("Europa League", "soccer_uefa_europa_league", "eropa.png")
+    show_league_ball("Serie A", "soccer_italy_serie_a", "italia.jpg")
+    show_league_ball("ליגת העל", "soccer_israel_premier_league", "israel.jpg")
 
 with col_l3:
-    st.markdown('<div class="league-card pl-card">', unsafe_allowed_html=True)
-    btn_pl = st.button("🦁 Premier League", key="pl")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card de-card">', unsafe_allowed_html=True)
-    btn_de = st.button("🇩🇪 Bundesliga", key="de")
-    st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card wc-card">', unsafe_allowed_html=True)
-    btn_wc = st.button("🌍 World Cup / Euro", key="wc")
-    st.markdown('</div>', unsafe_allowed_html=True)
+    show_league_ball("Premier League", "soccer_epl", "england.png")
+    show_league_ball("Bundesliga", "soccer_germany_bundesliga", "germany.png")
+    show_league_ball("World Cup / Euro", "soccer_fifa_world_cup", "mondeial.jpg")
 
-# ניהול סטטוס בחירת הליגה
-if "selected_league" not in st.session_state:
-    st.session_state.selected_league = "soccer_israel_premier_league" # ליגת העל כברירת מחדל לאתר מקומי
-
-if btn_cl: st.session_state.selected_league = "soccer_uefa_champs_league"
-elif btn_el: st.session_state.selected_league = "soccer_uefa_europa_league"
-elif btn_pl: st.session_state.selected_league = "soccer_epl"
-elif btn_es: st.session_state.selected_league = "soccer_spain_la_liga"
-elif btn_it: st.session_state.selected_league = "soccer_italy_serie_a"
-elif btn_de: st.session_state.selected_league = "soccer_germany_bundesliga"
-elif btn_fr: st.session_state.selected_league = "soccer_france_ligue_one"
-elif btn_il: st.session_state.selected_league = "soccer_israel_premier_league"
-elif btn_wc: st.session_state.selected_league = "soccer_fifa_world_cup"
+st.write("---")
 
 # שאיבה מהשרת הגלובלי
 with st.spinner("מעדכן תוכנייה חיה מהאינטרנט..."):
@@ -310,7 +289,7 @@ has_active_games = len(games_list) > 0
 
 if not has_active_games:
     st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום (פגרה / אין משחקים). באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
-    games_list = [{"home": "מכבי תל אביב", "away": "מכבי חיפה", "w_1": 2.20, "w_x": 3.10, "w_2": 2.90}]
+    games_list = [{"home": "בית''ר ירושלים", "away": "הפועל באר שבע", "w_1": 2.30, "w_x": 3.20, "w_2": 2.80}]
 
 # בניית תפריט הגלילה
 if has_active_games:
@@ -414,136 +393,4 @@ prob_o25 = 100 - prob_u25
 
 prob_b01 = (matrix[(0,0)] + matrix[(1,0)] + matrix[(0,1)]) * 100
 prob_b23 = (matrix[(2,0)] + matrix[(0,2)] + matrix[(1,1)] + matrix[(2,1)] + matrix[(1,2)] + matrix[(3,0)] + matrix[(0,3)]) * 100
-prob_b4p = 100.0 - (prob_b01 + prob_b23)
-
-corner_minutes = 96
-base_corner_rate = 10.2 / 90.0
-home_corner_ratio = final_lambda / (final_lambda + final_mu)
-
-c_0_8, c_9_11, c_12_p = 0, 0, 0
-u_95, o_95 = 0, 0
-u_105, o_105 = 0, 0
-race_home, race_away, race_neither = 0, 0, 0
-
-for _ in range(5000):
-    sim_c = 0
-    h_corners, a_corners = 0, 0
-    race_won = False
-    for minute in range(1, corner_minutes + 1):
-        if random.random() < base_corner_rate:
-            sim_c += 1
-            if random.random() < home_corner_ratio: h_corners += 1
-            else: a_corners += 1
-            if not race_won:
-                if h_corners >= 5: race_home += 1; race_won = True
-                elif a_corners >= 5: race_away += 1; race_won = True
-    if not race_won: race_neither += 1
-    if sim_c <= 8: c_0_8 += 1
-    elif 9 <= sim_c <= 11: c_9_11 += 1
-    else: c_12_p += 1
-    if sim_c < 9.5: u_95 += 1
-    else: o_95 += 1
-    if sim_c < 10.5: u_105 += 1
-    else: o_105 += 1
-
-prob_c08 = (c_0_8 / 5000) * 100
-prob_c911 = (c_9_11 / 5000) * 100
-prob_c12p = (c_12_p / 5000) * 100
-prob_u95 = (u_95 / 5000) * 100
-prob_o95 = (o_95 / 5000) * 100
-prob_u105 = (u_105 / 5000) * 100
-prob_o105 = (o_105 / 5000) * 100
-cumulative_under = prob_c08 + prob_c911
-
-prob_race_home = (race_home / 5000) * 100
-prob_race_away = (race_away / 5000) * 100
-prob_race_neither = (race_neither / 5000) * 100
-
-with st.expander("🔎 לחץ כאן לחשיפת דוח החישובים המלא מאחורי הקלעים (NO BLACK BOX)"):
-    col_sub1, col_sub2 = st.columns(2)
-    with col_sub1:
-        st.write("**מנוע שערים (Dixon-Coles):**")
-        st.write(f"• Home Lambda: `{final_lambda:.4f}`")
-        st.write(f"• Away Mu: `{final_mu:.4f}`")
-        st.write(f"• תוחלת שערים כללית: `{final_lambda + final_mu:.2f}` שערים")
-    with col_sub2:
-        st.write("**הסתברויות גולמיות מחושבות:**")
-        st.write(f"• 1X2 גולמי: {prob_1:.1f}% | {prob_x:.1f}% | {prob_2:.1f}%")
-        st.write(f"• בראקט שערים: 0-1 ({prob_b01:.1f}%) | 2-3 ({prob_b23:.1f}%) | 4+ ({prob_b4p:.1f}%)")
-        st.write(f"• בראקט קרנות: 0-8 ({prob_c08:.1f}%) | 9-11 ({prob_c911:.1f}%) | 12+ ({prob_c12p:.1f}%)")
-
-st.write("")
-if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותחת"):
-    with st.spinner("מבצע חישובי עומק מסווגים..."):
-        time.sleep(1)
-        
-        all_bets = []
-        def add_bet(market, selection, prob, current):
-            if current:
-                edge = prob - ((1 / current) * 100)
-                if edge > 0:
-                    narrative = generate_tactical_narrative(market, selection, prob, edge)
-                    all_bets.append({"market": market, "selection": selection, "prob": prob, "odds": current, "edge": edge, "narrative": narrative})
-
-        # טעינה לסינון
-        add_bet("מאני ליין", f"ניצחון {home_name}", prob_1, w_1)
-        add_bet("מאני ליין", "תיקו", prob_x, w_x)
-        add_bet("מאני ליין", f"ניצחון {away_name}", prob_2, w_2)
-        
-        add_bet("הנדיקאפ", f"{home_name} -1", prob_hc_minus1, w_h_minus1)
-        add_bet("הנדיקאפ", "תיקו בהנדיקאפ X", prob_hc_x, w_h_x)
-        add_bet("הנדיקאפ", f"{away_name} +1", prob_away_plus_1, w_h_plus1)
-        
-        add_bet("שערים", "מתחת 2.5", prob_u25, w_u25)
-        add_bet("שערים", "מעל 2.5", prob_o25, w_o25)
-        
-        add_bet("בראקט שערים", "0-1", prob_b01, w_b01)
-        add_bet("בראקט שערים", "2-3", prob_b23, w_b23)
-        add_bet("בראקט שערים", "4+", prob_b4p, w_b4p)
-        
-        add_bet("בראקט קרנות", "0-8", prob_c08, w_c08)
-        add_bet("בראקט קרנות", "12+", prob_c12p, w_c12p)
-        
-        add_bet("קרנות 9.5", "מתחת", prob_u95, w_c_u95)
-        add_bet("קרנות 9.5", "מעל", prob_o95, w_c_o95)
-        add_bet("קרנות 10.5", "מתחת", prob_u105, w_c_u105)
-        add_bet("קרנות 10.5", "מעל", prob_o105, w_c_o105)
-        
-        add_bet("מירוץ קרנות", f"{home_name}", prob_race_home, w_race_home)
-        add_bet("מירוץ קרנות", "תיקו", prob_race_neither, w_race_x)
-        add_bet("מירוץ קרנות", f"{away_name}", prob_race_away, w_race_away)
-
-        all_bets.sort(key=lambda x: x["edge"], reverse=True)
-
-        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f39c12; margin-top: 0;'>📋 פסק הדין הסופי - APEX VERDICT</h2>", unsafe_allow_html=True)
-        st.write(f"📊 **תוחלת שערים מחושבת ($npxG$ מנוקה ומכויל):** {final_lambda + final_mu:.2f}")
-        st.write("---")
-        st.markdown("### 🌟 החמישייה הפותחת:")
-        
-        valid_bets_count = 0
-        for bet in all_bets:
-            if valid_bets_count >= 5:
-                break
-                
-            # אכיפת VETO
-            if bet["market"] == "בראקט שערים" and bet["selection"] == "2-3" and w_b23 and 1.80 <= w_b23 <= 1.85:
-                continue
-            if "קרנות" in bet["market"] and ("12+" in bet["selection"] or "מעל" in bet["selection"]) and cumulative_under >= 80.0:
-                continue
-                
-            valid_bets_count += 1
-            st.success(f"🎯 **[RANK {valid_bets_count}]** | **{bet['market']}**: {bet['selection']} | 📊 הסתברות: **{bet['prob']:.2f}%** | ווינר: **{bet['odds']:.2f}** | אדג': **+{bet['edge']:.2f}%**")
-            st.markdown(f"<p style='font-style: italic; color: #a0aec0; margin-right: 20px;'>🧠 {bet['narrative']}</p>", unsafe_allow_html=True)
-
-        if valid_bets_count == 0:
-            st.error("❌ המערכת לא מצאה הימורים בעלי ערך חיובי. חובה לדלג (SKIP)!")
-
-        st.write("---")
-        st.subheader("⛔ דוח וטו ופילטרים פעילים")
-        st.warning("⛔ **[VETO]** הוחל איסור מוחלט על סימון X (9-11) בקרנות.")
-        if w_b23 and 1.80 <= w_b23 <= 1.85: 
-            st.warning(f"⛔ **[VETO_185]** מלכודת 2-3 שערים הופעלה (יחס {w_b23:.2f}). השוק נחסם פיזית למניעת הפסדים.")
-        if cumulative_under >= 80.0:
-            st.warning(f"⛔ **[ANTI_CONTRADICTION_LOCK]** קיר ה-80% הופעל ({cumulative_under:.1f}% לאנדר). סימון קרנות גבוה נחסם למניעת סתירות.")
-        st.markdown("</div>", unsafe_allow_html=True)
+prob_b4p = 100.0 -
