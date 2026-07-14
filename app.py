@@ -1,4 +1,4 @@
-import streamlit as st
+                import streamlit as st
 import urllib.request
 import json
 import math
@@ -8,6 +8,7 @@ import time
 import os
 import glob
 from PIL import Image
+from datetime import datetime, timezone
 
 # הגדרות עמוד (חייב להיות ראשון)
 st.set_page_config(page_title="I&O Sports Analytics", page_icon="🏆", layout="centered")
@@ -135,17 +136,16 @@ def safe_float(val, fallback):
     if val is None or val == "":
         return fallback
     try:
-        # ניקוי סימנים וטקסט שבור שהשתרבבו לקלט
         clean_val = "".join(c for c in str(val) if c.isdigit() or c == '.')
         return float(clean_val)
     except ValueError:
         return fallback
 
-@st.cache_data(ttl=300)
-def fetch_all_active_leagues():
-    """שאיבת כל משחקי היום מהרשת העולמית (יעד 3)"""
+@st.cache_data(ttl=60)
+def fetch_games_by_league(sport_key):
+    """שאיבת משחקים משרתי ה-Odds לפי מפתח ליגה ייעודי"""
     context = ssl._create_unverified_context()
-    url = f"https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey={API_KEY}&regions=eu&markets=h2h"
+    url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/?apiKey={API_KEY}&regions=eu&markets=h2h"
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, context=context, timeout=8) as response:
@@ -154,7 +154,7 @@ def fetch_all_active_leagues():
         return []
 
 def auto_get_weather_multiplier(city):
-    """שאיבת נתוני אקלים אוטומטית משרת לוויין פתוח ללא צורך במפתחות"""
+    """שאיבת נתוני אקלים אוטומטית משרת לוויין פתוח"""
     context = ssl._create_unverified_context()
     url = f"https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current_weather=true"
     try:
@@ -184,13 +184,71 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-# --- שאיבת נתונים ראשונית ---
-with st.spinner("סורק את הצינור הגלובלי לשאיבת משחקי היום..."):
-    raw_games = fetch_all_active_leagues()
+# --- ממשק בחירת ליגות מעוצב ומורחב בראש הדף ---
+st.subheader("🏆 בחר ליגה לסינון מיידי של התוכנייה")
 
+# מיפוי מורחב של כל הליגות הבכירות והמעניינות ביותר בארץ ובעולם
+leagues_map = {
+    "🏆 Champions League": "soccer_uefa_champs_league",
+    "🇪🇺 Europa League": "soccer_uefa_europa_league",
+    "🦁 Premier League": "soccer_epl",
+    "🇪🇸 La Liga": "soccer_spain_la_liga",
+    "🇮🇹 Serie A": "soccer_italy_serie_a",
+    "🇩🇪 Bundesliga": "soccer_germany_bundesliga",
+    "🇫🇷 Ligue 1": "soccer_france_ligue_one",
+    "🌍 World Cup / International": "soccer_fifa_world_cup",
+    "📁 כל המשחקים": "soccer"
+}
+
+col_l1, col_l2, col_l3 = st.columns(3)
+with col_l1:
+    btn_cl = st.button("🏆 Champions League", use_container_width=True)
+    btn_es = st.button("🇪🇸 La Liga", use_container_width=True)
+    btn_fr = st.button("🇫🇷 Ligue 1", use_container_width=True)
+with col_l2:
+    btn_el = st.button("🇪🇺 Europa League", use_container_width=True)
+    btn_it = st.button("🇮🇹 Serie A", use_container_width=True)
+    btn_wc = st.button("🌍 World Cup / Euro", use_container_width=True)
+with col_l3:
+    btn_pl = st.button("🦁 Premier League", use_container_width=True)
+    btn_de = st.button("🇩🇪 Bundesliga", use_container_width=True)
+    btn_all = st.button("📁 כל המשחקים", use_container_width=True)
+
+# קביעת הליגה שנבחרה בתוך ה-session_state של האתר
+if "selected_league" not in st.session_state:
+    st.session_state.selected_league = "soccer"
+
+if btn_cl: st.session_state.selected_league = "soccer_uefa_champs_league"
+elif btn_el: st.session_state.selected_league = "soccer_uefa_europa_league"
+elif btn_pl: st.session_state.selected_league = "soccer_epl"
+elif btn_es: st.session_state.selected_league = "soccer_spain_la_liga"
+elif btn_it: st.session_state.selected_league = "soccer_italy_serie_a"
+elif btn_de: st.session_state.selected_league = "soccer_germany_bundesliga"
+elif btn_fr: st.session_state.selected_league = "soccer_france_ligue_one"
+elif btn_wc: st.session_state.selected_league = "soccer_fifa_world_cup"
+elif btn_all: st.session_state.selected_league = "soccer"
+
+# שאיבת משחקים לליגה שנבחרה
+with st.spinner("מעדכן תוכנייה חיה מהאינטרנט..."):
+    raw_games = fetch_games_by_league(st.session_state.selected_league)
+
+# סנכרון משחקים והחלת PRE_MATCH_SAFETY_FILTER (שתי דקות קשיח - 120 שניות)
 games_list = []
+now_utc = datetime.now(timezone.utc)
+
 if raw_games:
     for game in raw_games:
+        # בדיקת זמן המשחק (מחסום ה-2 דקות למניעת ניצול לייב)
+        commence_time_str = game.get("commence_time")
+        if commence_time_str:
+            try:
+                game_time = datetime.fromisoformat(commence_time_str.replace("Z", "+00:00"))
+                seconds_remaining = (game_time - now_utc).total_seconds()
+                if seconds_remaining < 120:
+                    continue  # המשחק התחיל או שעומד להתחיל בתוך פחות מ-2 דקות. מושמד מהתוכנייה!
+            except Exception:
+                pass
+                
         home = game.get("home_team", "Home")
         away = game.get("away_team", "Away")
         odds_1, odds_x, odds_2 = 2.10, 3.20, 3.10
@@ -205,13 +263,14 @@ if raw_games:
                 break
         games_list.append({"home": home, "away": away, "w_1": odds_1, "w_x": odds_x, "w_2": odds_2})
 
+# אם אין משחקים פעילים ברשימה
 if not games_list:
+    st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום. באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
     games_list = [{"home": "אנגליה", "away": "ארגנטינה", "w_1": 2.10, "w_x": 3.20, "w_2": 3.10}]
 
-# תפריט בחירת משחק
-st.subheader("🎯 בחירת משחק פעיל מהתוכנייה")
+# תפריט גלילה דינמי
 game_names = [f"{g['home']} vs {g['away']}" for g in games_list] + ["-- הזנה ידנית חופשית --"]
-selected_game_choice = st.selectbox("בחר משחק לסריקה או הזן ידנית:", game_names)
+selected_game_choice = st.selectbox("בחר משחק לסריקה:", game_names)
 
 if selected_game_choice == "-- הזנה ידנית חופשית --":
     col_home, col_away = st.columns(2)
@@ -229,7 +288,7 @@ else:
 
 is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / גמר / נוקאאוט קריטי)")
 
-# שאיבה ודגימה אוטומטית של אקלים
+# שאיבה ודגימה אוטומטית של אקלים באצטדיון
 weather_multiplier, weather_report = auto_get_weather_multiplier(home_name)
 st.info(f"🌦️ **דוח אקלים אוטומטי לאצטדיון:** {weather_report}")
 
