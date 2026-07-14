@@ -99,24 +99,6 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
         margin-top: 30px;
     }
-
-    /* ⚽ סגנון תמונות עיגולי כדורגל ללא לחצני HTML שבירים */
-    .soccer-ball-img {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #1f2937;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        transition: 0.3s;
-    }
-    .active-ball-img {
-        border-color: #f39c12 !important;
-        box-shadow: 0 0 18px rgba(243, 156, 18, 0.8) !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -173,9 +155,24 @@ def fetch_games_by_league(sport_key):
     except Exception:
         return []
 
-def auto_get_weather_multiplier(city):
+def auto_get_weather_multiplier(sport_key):
+    """מנוע אקלים דינמי - משנה טמפרטורה וקואורדינטות לפי הליגה שנבחרה במציאות"""
+    # מפת מיקומים עולמית לפי ליגה
+    geo_map = {
+        "soccer_israel_premier_league": {"lat": 32.0853, "lon": 34.7818, "name": "ישראל"},
+        "soccer_epl": {"lat": 51.5074, "lon": -0.1278, "name": "אנגליה"},
+        "soccer_spain_la_liga": {"lat": 40.4168, "lon": -3.7038, "name": "ספרד"},
+        "soccer_italy_serie_a": {"lat": 41.9028, "lon": 12.4964, "name": "איטליה"},
+        "soccer_germany_bundesliga": {"lat": 52.5200, "lon": 13.4050, "name": "גרמניה"},
+        "soccer_france_ligue_one": {"lat": 48.8566, "lon": 2.3522, "name": "צרפת"},
+        "soccer_uefa_champs_league": {"lat": 50.0755, "lon": 14.4378, "name": "אירופה (צ'מפיונס)"},
+        "soccer_uefa_europa_league": {"lat": 48.2082, "lon": 16.3738, "name": "אירופה (אירופית)"},
+        "soccer_fifa_world_cup": {"lat": -23.5505, "lon": -46.6333, "name": "זירה בינלאומית"}
+    }
+    
+    loc = geo_map.get(sport_key, {"lat": 32.0853, "lon": 34.7818, "name": "ישראל"})
     context = ssl._create_unverified_context()
-    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={loc['lat']}&longitude={loc['lon']}&current_weather=true"
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, context=context, timeout=4) as response:
@@ -183,12 +180,12 @@ def auto_get_weather_multiplier(city):
             temp = res["current_weather"]["temperature"]
             weather_code = res["current_weather"]["weathercode"]
             if weather_code in [51, 53, 55, 61, 63, 65, 71, 73, 75, 77, 80, 81, 82]:
-                return 0.925, f"גשם פעיל במגרש ({temp}°C) - הוחל קנס Velocity של 7.5%-"
+                return 0.925, f"גשם/משקעים פעילים ב{loc['name']} ({temp}°C) - הוחל קנס Velocity של 7.5%-"
             elif temp < 3.0:
-                return 0.970, f"קור קיצוני ללא משקעים ({temp}°C) - הוחל קנס Velocity של 3%-"
-            return 1.000, f"מזג אוויר תקין ({temp}°C) - אין קנס אקלים"
+                return 0.970, f"קור קיצוני ב{loc['name']} ({temp}°C) - הוחל קנס Velocity של 3%-"
+            return 1.000, f"מזג אוויר תקין ב{loc['name']} ({temp}°C) - אין קנס אקלים"
     except Exception:
-        return 1.000, "בהיר ותקין (22°C) - ללא קנס אקלים (Fallback)"
+        return 1.000, f"בהיר ותקין (22°C) - אקלים יציב ב{loc['name']} (Fallback)"
 
 def generate_tactical_narrative(market, selection, prob, edge):
     if "קרנות" in market and ("אנדר" in selection or "0-8" in selection):
@@ -209,43 +206,60 @@ def get_base64_image(img_path):
             return base64.b64encode(image_file.read()).decode()
     return ""
 
-# --- ממשק הליגות בצורת 9 עיגולי כדורגל מעלפים ---
-st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allow_html=True)
+# --- ממשק הליגות בצורת 9 עיגולי כדורגל לחיצים ---
+st.markdown("<h3 style='text-align: center; color: #f39c12; margin-bottom: 25px;'>🛡️ לחץ על כדור הליגה לבחירה ישירה</h3>", unsafe_allow_html=True)
 
 if "selected_league" not in st.session_state:
     st.session_state.selected_league = "soccer_israel_premier_league"
 
-def show_league_ball(title, sport_key, file_name):
+def make_soccer_ball_clickable(title, sport_key, file_name):
+    """מייצר עיגול כדורגל לחיץ לחלוטין ללא שום כפתור כתום מכוער של Streamlit"""
     b64 = get_base64_image(file_name)
     is_active = st.session_state.selected_league == sport_key
-    active_class = "active-ball-img" if is_active else ""
     
-    if b64:
-        st.markdown(f'<img src="data:image/png;base64,{b64}" class="soccer-ball-img {active_class}">', unsafe_allow_html=True)
+    # עיצוב מותאם אישית של עיגול זוהר או רגיל
+    border_style = "border: 4px solid #f39c12; box-shadow: 0 0 20px rgba(243, 156, 18, 0.8);" if is_active else "border: 3px solid #1f2937;"
+    title_color = "color: #f39c12; font-weight: 900;" if is_active else "color: #8892b0;"
+    
+    if not b64:
+        b64_html = '<div style="font-size:45px; margin-bottom:10px;">⚽</div>'
     else:
-        st.markdown(f'<div style="text-align:center; font-size:40px;">⚽</div>', unsafe_allow_html=True)
-        
-    if st.button(title, key="btn_" + sport_key, use_container_width=True):
-        st.session_state.selected_league = sport_key
-        st.rerun()
+        b64_html = f'<img src="data:image/png;base64,{b64}" style="width:110px; height:110px; border-radius:50%; object-fit:cover; {border_style} transition:0.3s; display:block; margin:0 auto; cursor:pointer;">'
+    
+    # הזרקת קומפוננטת HTML נקייה לחלוטין - לחיצה על התמונה מפעילה את השינוי!
+    html_content = f"""
+    <div style="text-align:center; margin-bottom:20px; font-family:'Segoe UI';">
+        <a href="?league={sport_key}" target="_self" style="text-decoration:none;">
+            {b64_html}
+            <span style="display:block; font-size:14px; margin-top:8px; {title_color}">{title}</span>
+        </a>
+    </div>
+    """
+    # שימוש בתיבת ה-HTML של Streamlit כדי לרנדר את הכדור כלחיץ הרמטי
+    st.components.v1.html(html_content, height=160)
 
-# הצגה סימטרית ב-3 עמודות
+# קריאת הפרמטר מהקישור במידה והמשתמש לחץ על כדור
+query_params = st.query_params
+if "league" in query_params:
+    st.session_state.selected_league = query_params["league"]
+
+# הצגה סימטרית ב-3 עמודות של הכדורים הלחיצים
 col_l1, col_l2, col_l3 = st.columns(3)
 
 with col_l1:
-    show_league_ball("Champions League", "soccer_uefa_champs_league", "cjampions.png")
-    show_league_ball("La Liga", "soccer_spain_la_liga", "spain.png")
-    show_league_ball("Ligue 1", "soccer_france_ligue_one", "france.png")
+    make_soccer_ball_clickable("Champions League", "soccer_uefa_champs_league", "cjampions.png")
+    make_soccer_ball_clickable("La Liga", "soccer_spain_la_liga", "spain.png")
+    make_soccer_ball_clickable("Ligue 1", "soccer_france_ligue_one", "france.png")
 
 with col_l2:
-    show_league_ball("Europa League", "soccer_uefa_europa_league", "eropa.png")
-    show_league_ball("Serie A", "soccer_italy_serie_a", "italia.jpg")
-    show_league_ball("ליגת העל", "soccer_israel_premier_league", "israel.jpg")
+    make_soccer_ball_clickable("Europa League", "soccer_uefa_europa_league", "eropa.png")
+    make_soccer_ball_clickable("Serie A", "soccer_italy_serie_a", "italia.jpg")
+    make_soccer_ball_clickable("ליגת העל", "soccer_israel_premier_league", "israel.jpg")
 
 with col_l3:
-    show_league_ball("Premier League", "soccer_epl", "england.png")
-    show_league_ball("Bundesliga", "soccer_germany_bundesliga", "germany.png")
-    show_league_ball("World Cup / Euro", "soccer_fifa_world_cup", "mondeial.jpg")
+    make_soccer_ball_clickable("Premier League", "soccer_epl", "england.png")
+    make_soccer_ball_clickable("Bundesliga", "soccer_germany_bundesliga", "germany.png")
+    make_soccer_ball_clickable("World Cup / Euro", "soccer_fifa_world_cup", "mondeial.jpg")
 
 st.write("---")
 
@@ -258,6 +272,7 @@ now_utc = datetime.now(timezone.utc)
 
 if raw_games:
     for game in raw_games:
+        # פילטר 2 דקות קשיח (120 שניות לשריקה)
         commence_time_str = game.get("commence_time")
         if commence_time_str:
             try:
@@ -312,8 +327,8 @@ else:
 
 is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / משחק עונה / נוקאאוט קריטי)")
 
-# שאיבה ודגימה אוטומטית של אקלים באצטדיון
-weather_multiplier, weather_report = auto_get_weather_multiplier(home_name)
+# שאיבה ודגימה אוטומטית של אקלים דינמי לפי המיקום של הליגה שנבחרה
+weather_multiplier, weather_report = auto_get_weather_multiplier(st.session_state.selected_league)
 st.info(f"🌦️ **דוח אקלים אוטומטי לאצטדיון:** {weather_report}")
 
 st.markdown("### 💵 הזנת יחסי ווינר בלייב")
