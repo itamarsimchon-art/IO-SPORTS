@@ -102,7 +102,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# טעינת הלוגו - צייד אוטומטי (מחפש כל קובץ תמונה בתיקייה)
+# טעינת הלוגו - צייד אוטומטי
 # ---------------------------------------------------------
 image_files = glob.glob("*.jfif") + glob.glob("*.jpg") + glob.glob("*.png") + glob.glob("*.jpeg")
 if image_files:
@@ -132,7 +132,6 @@ def calculate_dixon_coles_adjustment(home_goals, away_goals, lambda_home, lambda
     return 1.0
 
 def safe_float(val, fallback):
-    """מנגנון אל-כשל כירורגי מונע קריסות של פייתון על קלט שגוי/משובש"""
     if val is None or val == "":
         return fallback
     try:
@@ -143,7 +142,6 @@ def safe_float(val, fallback):
 
 @st.cache_data(ttl=60)
 def fetch_games_by_league(sport_key):
-    """שאיבת משחקים משרתי ה-Odds לפי מפתח ליגה ייעודי"""
     context = ssl._create_unverified_context()
     url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/?apiKey={API_KEY}&regions=eu&markets=h2h"
     try:
@@ -154,7 +152,6 @@ def fetch_games_by_league(sport_key):
         return []
 
 def auto_get_weather_multiplier(city):
-    """שאיבת נתוני אקלים אוטומטית משרת לוויין פתוח"""
     context = ssl._create_unverified_context()
     url = f"https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current_weather=true"
     try:
@@ -184,10 +181,9 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-# --- ממשק בחירת ליגות מעוצב ומורחב בראש הדף ---
+# --- ממשק בחירת ליגות ---
 st.subheader("🏆 בחר ליגה לסינון מיידי של התוכנייה")
 
-# מיפוי מורחב של כל הליגות הבכירות והמעניינות ביותר בארץ ובעולם
 leagues_map = {
     "🏆 Champions League": "soccer_uefa_champs_league",
     "🇪🇺 Europa League": "soccer_uefa_europa_league",
@@ -214,7 +210,7 @@ with col_l3:
     btn_de = st.button("🇩🇪 Bundesliga", use_container_width=True)
     btn_all = st.button("📁 כל המשחקים", use_container_width=True)
 
-# קביעת הליגה שנבחרה בתוך ה-session_state של האתר
+# קביעת הליגה
 if "selected_league" not in st.session_state:
     st.session_state.selected_league = "soccer"
 
@@ -228,24 +224,23 @@ elif btn_fr: st.session_state.selected_league = "soccer_france_ligue_one"
 elif btn_wc: st.session_state.selected_league = "soccer_fifa_world_cup"
 elif btn_all: st.session_state.selected_league = "soccer"
 
-# שאיבת משחקים לליגה שנבחרה
+# שאיבה מהשרת
 with st.spinner("מעדכן תוכנייה חיה מהאינטרנט..."):
     raw_games = fetch_games_by_league(st.session_state.selected_league)
 
-# סנכרון משחקים והחלת PRE_MATCH_SAFETY_FILTER (שתי דקות קשיח - 120 שניות)
 games_list = []
 now_utc = datetime.now(timezone.utc)
 
 if raw_games:
     for game in raw_games:
-        # בדיקת זמן המשחק (מחסום ה-2 דקות למניעת ניצול לייב)
+        # פילטר 2 דקות
         commence_time_str = game.get("commence_time")
         if commence_time_str:
             try:
                 game_time = datetime.fromisoformat(commence_time_str.replace("Z", "+00:00"))
                 seconds_remaining = (game_time - now_utc).total_seconds()
                 if seconds_remaining < 120:
-                    continue  # המשחק התחיל או שעומד להתחיל בתוך פחות מ-2 דקות. מושמד מהתוכנייה!
+                    continue
             except Exception:
                 pass
                 
@@ -263,13 +258,21 @@ if raw_games:
                 break
         games_list.append({"home": home, "away": away, "w_1": odds_1, "w_x": odds_x, "w_2": odds_2})
 
-# אם אין משחקים פעילים ברשימה
-if not games_list:
-    st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום. באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
+# בדיקה סטרילית אם יש משחקים בליגה שנבחרה
+has_active_games = len(games_list) > 0
+
+if not has_active_games:
+    st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום (פגרה / אין משחקים). באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
+    # מציג את אנגליה-ארגנטינה כגיבוי סמוי למקרה שהמשתמש ירצה לראות דמו, אך לא משייך אותו לליגה
     games_list = [{"home": "אנגליה", "away": "ארגנטינה", "w_1": 2.10, "w_x": 3.20, "w_2": 3.10}]
 
-# תפריט גלילה דינמי
-game_names = [f"{g['home']} vs {g['away']}" for g in games_list] + ["-- הזנה ידנית חופשית --"]
+# בניית תפריט הגלילה
+if has_active_games:
+    game_names = [f"{g['home']} vs {g['away']}" for g in games_list] + ["-- הזנה ידנית חופשית --"]
+else:
+    # אם הליגה ריקה, האופציה היחידה היא הזנה ידנית בלבד
+    game_names = ["-- הזנה ידנית חופשית --"]
+
 selected_game_choice = st.selectbox("בחר משחק לסריקה:", game_names)
 
 if selected_game_choice == "-- הזנה ידנית חופשית --":
@@ -312,7 +315,7 @@ with tab2:
     w_o25 = col_h.number_input("שערים מעל 2.5:", min_value=1.0, step=0.05, value=1.65)
     col_i, col_j, col_k = st.columns(3)
     w_b01 = col_i.number_input("שערים 0-1:", min_value=1.0, step=0.05, value=2.95)
-    w_b23 = col_j.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
+    w_b23 = col_i.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
     w_b4p = col_k.number_input("שערים 4+:", min_value=1.0, step=0.05, value=2.80)
 
 with tab3:
@@ -331,11 +334,10 @@ with tab3:
     w_race_x = col_t.number_input("מירוץ 5 (תיקו):", min_value=1.0, step=0.05, value=4.50)
     w_race_away = col_u.number_input(f"מירוץ 5 ({away_name}):", min_value=1.0, step=0.05, value=2.10)
 
-# --- מעבדה מתמטית שקופה מאחורי הקלעים ---
-# חיסור פנדלים (0.76) ושקלול 57/43 המקורי שלכם
+# --- מעבדה מתמטית ---
 raw_home_npxg = 2.15
 raw_away_npxg = 1.65
-clean_home_npxg = raw_home_npxg - 0.76  # מנוקה פנדל אחד
+clean_home_npxg = raw_home_npxg - 0.76
 clean_away_npxg = raw_away_npxg
 
 lambda_base = (clean_home_npxg * 0.57) + (clean_away_npxg * 0.43)
@@ -346,7 +348,6 @@ final_lambda = lambda_base * lambda_multiplier * weather_multiplier
 final_mu = mu_base * lambda_multiplier * weather_multiplier
 rho = -0.05
 
-# חישוב מטריצת דיקסון-קולס
 matrix = {}
 for h in range(7):
     for a in range(7):
@@ -370,7 +371,6 @@ prob_b01 = (matrix[(0,0)] + matrix[(1,0)] + matrix[(0,1)]) * 100
 prob_b23 = (matrix[(2,0)] + matrix[(0,2)] + matrix[(1,1)] + matrix[(2,1)] + matrix[(1,2)] + matrix[(3,0)] + matrix[(0,3)]) * 100
 prob_b4p = 100.0 - (prob_b01 + prob_b23)
 
-# סימולציית מונטה קרלו לקרנות אסימטריות (96 דקות ריאליות)
 corner_minutes = 96
 base_corner_rate = 10.2 / 90.0
 home_corner_ratio = final_lambda / (final_lambda + final_mu)
@@ -380,7 +380,7 @@ u_95, o_95 = 0, 0
 u_105, o_105 = 0, 0
 race_home, race_away, race_neither = 0, 0, 0
 
-for _ in range(5000):  # 5000 הרצות מהירות לביצועי שרת מהירים
+for _ in range(5000):
     sim_c = 0
     h_corners, a_corners = 0, 0
     race_won = False
@@ -414,7 +414,6 @@ prob_race_home = (race_home / 5000) * 100
 prob_race_away = (race_away / 5000) * 100
 prob_race_neither = (race_neither / 5000) * 100
 
-# תצוגת שקיפות המעבדה לגולש
 with st.expander("🔎 לחץ כאן לחשיפת דוח החישובים המלא מאחורי הקלעים (NO BLACK BOX)"):
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -441,7 +440,7 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
                     narrative = generate_tactical_narrative(market, selection, prob, edge)
                     all_bets.append({"market": market, "selection": selection, "prob": prob, "odds": current, "edge": edge, "narrative": narrative})
 
-        # טעינת כל השווקים לסינון
+        # טעינה לסינון
         add_bet("מאני ליין", f"ניצחון {home_name}", prob_1, w_1)
         add_bet("מאני ליין", "תיקו", prob_x, w_x)
         add_bet("מאני ליין", f"ניצחון {away_name}", prob_2, w_2)
@@ -482,7 +481,7 @@ if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותח
             if valid_bets_count >= 5:
                 break
                 
-            # אכיפת חוקי ה-VETO
+            # אכיפת VETO
             if bet["market"] == "בראקט שערים" and bet["selection"] == "2-3" and w_b23 and 1.80 <= w_b23 <= 1.85:
                 continue
             if "קרנות" in bet["market"] and ("12+" in bet["selection"] or "מעל" in bet["selection"]) and cumulative_under >= 80.0:
