@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 st.set_page_config(page_title="I&O Sports Analytics", page_icon="🏆", layout="centered")
 
 # ---------------------------------------------------------
-# CSS אגרסיבי - עיצוב סייבר יוקרתי, שדות מוארים וטקסט בולט
+# CSS אגרסיבי ומטריף - חלוניות סייבר זוהרות, טאבים ומותג יוקרתי
 # ---------------------------------------------------------
 st.markdown("""
     <style>
@@ -98,6 +98,32 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
         margin-top: 30px;
     }
+
+    /* עיצוב כפתורי ליגה מותאמים אישית - כרטיסיות סייבר זוהרות */
+    .league-card button {
+        background: #111625 !important;
+        border: 2px solid #1f2937 !important;
+        border-radius: 15px !important;
+        padding: 20px 10px !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        color: #ffffff !important;
+        transition: all 0.3s ease !important;
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+    
+    /* אפקטים של תאורה וזוהר לכל כפתור בנפרד לפי המותג */
+    div.cl-card button:hover { border-color: #0044ff !important; box-shadow: 0 0 15px rgba(0, 68, 255, 0.6) !important; color: #0044ff !important; }
+    div.el-card button:hover { border-color: #ff5500 !important; box-shadow: 0 0 15px rgba(255, 85, 0, 0.6) !important; color: #ff5500 !important; }
+    div.pl-card button:hover { border-color: #9c27b0 !important; box-shadow: 0 0 15px rgba(156, 39, 176, 0.6) !important; color: #9c27b0 !important; }
+    div.es-card button:hover { border-color: #ffeb3b !important; box-shadow: 0 0 15px rgba(255, 235, 59, 0.6) !important; color: #ffeb3b !important; }
+    div.it-card button:hover { border-color: #00bcd4 !important; box-shadow: 0 0 15px rgba(0, 188, 212, 0.6) !important; color: #00bcd4 !important; }
+    div.de-card button:hover { border-color: #e91e63 !important; box-shadow: 0 0 15px rgba(233, 30, 99, 0.6) !important; color: #e91e63 !important; }
+    div.fr-card button:hover { border-color: #4caf50 !important; box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; color: #4caf50 !important; }
+    div.il-card button:hover { border-color: #f39c12 !important; box-shadow: 0 0 15px rgba(243, 156, 18, 0.6) !important; color: #f39c12 !important; }
+    div.wc-card button:hover { border-color: #00efff !important; box-shadow: 0 0 15px rgba(0, 239, 255, 0.6) !important; color: #00efff !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -153,7 +179,7 @@ def fetch_games_by_league(sport_key):
 
 def auto_get_weather_multiplier(city):
     context = ssl._create_unverified_context()
-    url = f"https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current_weather=true"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true" # ברירת מחדל לארץ
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, context=context, timeout=4) as response:
@@ -161,12 +187,12 @@ def auto_get_weather_multiplier(city):
             temp = res["current_weather"]["temperature"]
             weather_code = res["current_weather"]["weathercode"]
             if weather_code in [51, 53, 55, 61, 63, 65, 71, 73, 75, 77, 80, 81, 82]:
-                return 0.925, f"גשם/שלג פעיל באצטדיון ({temp}°C) - הוחל קנס Velocity של 7.5%-"
+                return 0.925, f"גשם פעיל במגרש ({temp}°C) - הוחל קנס Velocity של 7.5%-"
             elif temp < 3.0:
                 return 0.970, f"קור קיצוני ללא משקעים ({temp}°C) - הוחל קנס Velocity של 3%-"
             return 1.000, f"מזג אוויר תקין ({temp}°C) - אין קנס אקלים"
     except Exception:
-        return 1.000, "בהיר ותקין (20°C) - ללא קנס אקלים (Fallback)"
+        return 1.000, "בהיר ותקין (22°C) - ללא קנס אקלים (Fallback)"
 
 def generate_tactical_narrative(market, selection, prob, edge):
     if "קרנות" in market and ("אנדר" in selection or "0-8" in selection):
@@ -181,9 +207,10 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-# --- ממשק בחירת ליגות ---
-st.subheader("🏆 בחר ליגה לסינון מיידי של התוכנייה")
+# --- ממשק בחירת ליגות מעלף ומטריץ ---
+st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allowed_html=True)
 
+# מיפוי רשמי ומדויק כולל ליגת העל הישראלית
 leagues_map = {
     "🏆 Champions League": "soccer_uefa_champs_league",
     "🇪🇺 Europa League": "soccer_uefa_europa_league",
@@ -192,27 +219,48 @@ leagues_map = {
     "🇮🇹 Serie A": "soccer_italy_serie_a",
     "🇩🇪 Bundesliga": "soccer_germany_bundesliga",
     "🇫🇷 Ligue 1": "soccer_france_ligue_one",
-    "🌍 World Cup / International": "soccer_fifa_world_cup",
-    "📁 כל המשחקים": "soccer"
+    "🇮🇱 ליגת העל הישראלית": "soccer_israel_premier_league",
+    "🌍 World Cup / Euro": "soccer_fifa_world_cup"
 }
 
+# תצוגת מטריצת הליגות המעוצבת (3x3 עמודות עם Glow)
 col_l1, col_l2, col_l3 = st.columns(3)
 with col_l1:
-    btn_cl = st.button("🏆 Champions League", use_container_width=True)
-    btn_es = st.button("🇪🇸 La Liga", use_container_width=True)
-    btn_fr = st.button("🇫🇷 Ligue 1", use_container_width=True)
-with col_l2:
-    btn_el = st.button("🇪🇺 Europa League", use_container_width=True)
-    btn_it = st.button("🇮🇹 Serie A", use_container_width=True)
-    btn_wc = st.button("🌍 World Cup / Euro", use_container_width=True)
-with col_l3:
-    btn_pl = st.button("🦁 Premier League", use_container_width=True)
-    btn_de = st.button("🇩🇪 Bundesliga", use_container_width=True)
-    btn_all = st.button("📁 כל המשחקים", use_container_width=True)
+    st.markdown('<div class="league-card cl-card">', unsafe_allowed_html=True)
+    btn_cl = st.button("🏆 UEFA Champions League", key="cl")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card es-card">', unsafe_allowed_html=True)
+    btn_es = st.button("🇪🇸 La Liga", key="es")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card fr-card">', unsafe_allowed_html=True)
+    btn_fr = st.button("🇫🇷 Ligue 1", key="fr")
+    st.markdown('</div>', unsafe_allowed_html=True)
 
-# קביעת הליגה
+with col_l2:
+    st.markdown('<div class="league-card el-card">', unsafe_allowed_html=True)
+    btn_el = st.button("🇪🇺 UEFA Europa League", key="el")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card it-card">', unsafe_allowed_html=True)
+    btn_it = st.button("🇮🇹 Serie A", key="it")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card il-card">', unsafe_allowed_html=True)
+    btn_il = st.button("🇮🇱 ליגת העל הישראלית", key="il")
+    st.markdown('</div>', unsafe_allowed_html=True)
+
+with col_l3:
+    st.markdown('<div class="league-card pl-card">', unsafe_allowed_html=True)
+    btn_pl = st.button("🦁 Premier League", key="pl")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card de-card">', unsafe_allowed_html=True)
+    btn_de = st.button("🇩🇪 Bundesliga", key="de")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card wc-card">', unsafe_allowed_html=True)
+    btn_wc = st.button("🌍 World Cup / Euro", key="wc")
+    st.markdown('</div>', unsafe_allowed_html=True)
+
+# ניהול סטטוס בחירת הליגה
 if "selected_league" not in st.session_state:
-    st.session_state.selected_league = "soccer"
+    st.session_state.selected_league = "soccer_israel_premier_league" # ליגת העל כברירת מחדל לאתר מקומי
 
 if btn_cl: st.session_state.selected_league = "soccer_uefa_champs_league"
 elif btn_el: st.session_state.selected_league = "soccer_uefa_europa_league"
@@ -221,10 +269,10 @@ elif btn_es: st.session_state.selected_league = "soccer_spain_la_liga"
 elif btn_it: st.session_state.selected_league = "soccer_italy_serie_a"
 elif btn_de: st.session_state.selected_league = "soccer_germany_bundesliga"
 elif btn_fr: st.session_state.selected_league = "soccer_france_ligue_one"
+elif btn_il: st.session_state.selected_league = "soccer_israel_premier_league"
 elif btn_wc: st.session_state.selected_league = "soccer_fifa_world_cup"
-elif btn_all: st.session_state.selected_league = "soccer"
 
-# שאיבה מהשרת
+# שאיבה מהשרת הגלובלי
 with st.spinner("מעדכן תוכנייה חיה מהאינטרנט..."):
     raw_games = fetch_games_by_league(st.session_state.selected_league)
 
@@ -233,7 +281,7 @@ now_utc = datetime.now(timezone.utc)
 
 if raw_games:
     for game in raw_games:
-        # פילטר 2 דקות
+        # פילטר 2 דקות קשיח (120 שניות לשריקה)
         commence_time_str = game.get("commence_time")
         if commence_time_str:
             try:
@@ -258,28 +306,25 @@ if raw_games:
                 break
         games_list.append({"home": home, "away": away, "w_1": odds_1, "w_x": odds_x, "w_2": odds_2})
 
-# בדיקה סטרילית אם יש משחקים בליגה שנבחרה
 has_active_games = len(games_list) > 0
 
 if not has_active_games:
     st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום (פגרה / אין משחקים). באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
-    # מציג את אנגליה-ארגנטינה כגיבוי סמוי למקרה שהמשתמש ירצה לראות דמו, אך לא משייך אותו לליגה
-    games_list = [{"home": "אנגליה", "away": "ארגנטינה", "w_1": 2.10, "w_x": 3.20, "w_2": 3.10}]
+    games_list = [{"home": "מכבי תל אביב", "away": "מכבי חיפה", "w_1": 2.20, "w_x": 3.10, "w_2": 2.90}]
 
 # בניית תפריט הגלילה
 if has_active_games:
     game_names = [f"{g['home']} vs {g['away']}" for g in games_list] + ["-- הזנה ידנית חופשית --"]
 else:
-    # אם הליגה ריקה, האופציה היחידה היא הזנה ידנית בלבד
     game_names = ["-- הזנה ידנית חופשית --"]
 
-selected_game_choice = st.selectbox("בחר משחק לסריקה:", game_names)
+selected_game_choice = st.selectbox("🎯 בחר משחק מלוח המשחקים הקיים:", game_names)
 
 if selected_game_choice == "-- הזנה ידנית חופשית --":
     col_home, col_away = st.columns(2)
-    home_name = col_home.text_input("⚽ קבוצת הבית הידנית:", value="אנגליה")
-    away_name = col_away.text_input("⚽ קבוצת החוץ הידנית:", value="ארגנטינה")
-    active_w1, active_wx, active_w2 = 2.00, 3.20, 3.00
+    home_name = col_home.text_input("⚽ קבוצת הבית הידנית:", value="בית''ר ירושלים")
+    away_name = col_away.text_input("⚽ קבוצת החוץ הידנית:", value="הפועל באר שבע")
+    active_w1, active_wx, active_w2 = 2.30, 3.20, 2.80
 else:
     selected_idx = game_names.index(selected_game_choice)
     selected_game = games_list[selected_idx]
@@ -289,7 +334,7 @@ else:
     active_wx = selected_game["w_x"]
     active_w2 = selected_game["w_2"]
 
-is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / גמר / נוקאאוט קריטי)")
+is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / משחק עונה / נוקאאוט קריטי)")
 
 # שאיבה ודגימה אוטומטית של אקלים באצטדיון
 weather_multiplier, weather_report = auto_get_weather_multiplier(home_name)
@@ -315,7 +360,7 @@ with tab2:
     w_o25 = col_h.number_input("שערים מעל 2.5:", min_value=1.0, step=0.05, value=1.65)
     col_i, col_j, col_k = st.columns(3)
     w_b01 = col_i.number_input("שערים 0-1:", min_value=1.0, step=0.05, value=2.95)
-    w_b23 = col_i.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
+    w_b23 = col_j.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
     w_b4p = col_k.number_input("שערים 4+:", min_value=1.0, step=0.05, value=2.80)
 
 with tab3:
