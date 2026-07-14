@@ -253,7 +253,7 @@ with col_l3:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('<div class="league-card de-card">', unsafe_allow_html=True)
     btn_de = st.button("🇩🇪 Bundesliga", key="de")
-    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('<div class="league-card wc-card">', unsafe_allow_html=True)
     btn_wc = st.button("🌍 World Cup / Euro", key="wc")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -305,3 +305,191 @@ if raw_games:
                             else: odds_x = outcome["price"]
                 break
         games_list.append({"home": home, "away": away, "w_1": odds_1, "w_x": odds_x, "w_2": odds_2})
+
+has_active_games = len(games_list) > 0
+
+if not has_active_games:
+    st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום (פגרה / אין משחקים). באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
+    games_list = [{"home": "מכבי תל אביב", "away": "מכבי חיפה", "w_1": 2.20, "w_x": 3.10, "w_2": 2.90}]
+
+# בניית תפריט הגלילה
+if has_active_games:
+    game_names = [f"{g['home']} vs {g['away']}" for g in games_list] + ["-- הזנה ידנית חופשית --"]
+else:
+    game_names = ["-- הזנה ידנית חופשית --"]
+
+selected_game_choice = st.selectbox("🎯 בחר משחק מלוח המשחקים הקיים:", game_names)
+
+if selected_game_choice == "-- הזנה ידנית חופשית --":
+    col_home, col_away = st.columns(2)
+    home_name = col_home.text_input("⚽ קבוצת הבית הידנית:", value="בית''ר ירושלים")
+    away_name = col_away.text_input("⚽ קבוצת החוץ הידנית:", value="הפועל באר שבע")
+    active_w1, active_wx, active_w2 = 2.30, 3.20, 2.80
+else:
+    selected_idx = game_names.index(selected_game_choice)
+    selected_game = games_list[selected_idx]
+    home_name = selected_game["home"]
+    away_name = selected_game["away"]
+    active_w1 = selected_game["w_1"]
+    active_wx = selected_game["w_x"]
+    active_w2 = selected_game["w_2"]
+
+is_critical = st.checkbox("🚨 הפעל חוק הפחד (משחק רגיש / משחק עונה / נוקאאוט קריטי)")
+
+# שאיבה ודגימה אוטומטית של אקלים באצטדיון
+weather_multiplier, weather_report = auto_get_weather_multiplier(home_name)
+st.info(f"🌦️ **דוח אקלים אוטומטי לאצטדיון:** {weather_report}")
+
+st.markdown("### 💵 הזנת יחסי ווינר בלייב")
+
+tab1, tab2, tab3 = st.tabs(["📊 שוק 1X2 והנדיקאפ", "⚽ שערים ובראקטים", "📐 קרנות ומירוץ ל-5"])
+
+with tab1:
+    col_a, col_b, col_c = st.columns(3)
+    w_1 = col_a.number_input("ניצחון בית (1):", min_value=1.0, step=0.05, value=float(active_w1))
+    w_x = col_b.number_input("תיקו (X):", min_value=1.0, step=0.05, value=float(active_wx))
+    w_2 = col_c.number_input("ניצחון חוץ (2):", min_value=1.0, step=0.05, value=float(active_w2))
+    col_d, col_e, col_f = st.columns(3)
+    w_h_minus1 = col_d.number_input(f"הנדיקאפ {home_name} -1:", min_value=1.0, step=0.05, value=3.80)
+    w_h_x = col_e.number_input("הנדיקאפ תיקו (X):", min_value=1.0, step=0.05, value=3.40)
+    w_h_plus1 = col_f.number_input(f"הנדיקאפ {away_name} +1:", min_value=1.0, step=0.05, value=1.55)
+
+with tab2:
+    col_g, col_h = st.columns(2)
+    w_u25 = col_g.number_input("שערים מתחת 2.5:", min_value=1.0, step=0.05, value=1.90)
+    w_o25 = col_h.number_input("שערים מעל 2.5:", min_value=1.0, step=0.05, value=1.65)
+    col_i, col_j, col_k = st.columns(3)
+    w_b01 = col_i.number_input("שערים 0-1:", min_value=1.0, step=0.05, value=2.95)
+    w_b23 = col_j.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
+    w_b4p = col_k.number_input("שערים 4+:", min_value=1.0, step=0.05, value=2.80)
+
+with tab3:
+    col_l, col_m, col_n = st.columns(3)
+    w_c08 = col_l.number_input("קרנות 0-8:", min_value=1.0, step=0.05, value=2.35)
+    w_c911 = col_m.number_input("קרנות 9-11 (X):", min_value=1.0, step=0.05, value=2.45)
+    w_c12p = col_n.number_input("קרנות 12+:", min_value=1.0, step=0.05, value=2.65)
+    col_o, col_p = st.columns(2)
+    w_c_u95 = col_o.number_input("קרנות מתחת 9.5:", min_value=1.0, step=0.05, value=1.85)
+    w_c_o95 = col_p.number_input("קרנות מעל 9.5:", min_value=1.0, step=0.05, value=1.65)
+    col_q, col_r = st.columns(2)
+    w_c_u105 = col_q.number_input("קרנות מתחת 10.5:", min_value=1.0, step=0.05, value=1.60)
+    w_c_o105 = col_r.number_input("קרנות מעל 10.5:", min_value=1.0, step=0.05, value=1.90)
+    col_s, col_t, col_u = st.columns(3)
+    w_race_home = col_s.number_input(f"מירוץ 5 ({home_name}):", min_value=1.0, step=0.05, value=1.70)
+    w_race_x = col_t.number_input("מירוץ 5 (תיקו):", min_value=1.0, step=0.05, value=4.50)
+    w_race_away = col_u.number_input(f"מירוץ 5 ({away_name}):", min_value=1.0, step=0.05, value=2.10)
+
+# --- מעבדה מתמטית ---
+raw_home_npxg = 2.15
+raw_away_npxg = 1.65
+clean_home_npxg = raw_home_npxg - 0.76
+clean_away_npxg = raw_away_npxg
+
+lambda_base = (clean_home_npxg * 0.57) + (clean_away_npxg * 0.43)
+mu_base = (clean_away_npxg * 0.57) + (clean_home_npxg * 0.43)
+
+lambda_multiplier = 1.155 if is_critical else 1.0
+final_lambda = lambda_base * lambda_multiplier * weather_multiplier
+final_mu = mu_base * lambda_multiplier * weather_multiplier
+rho = -0.05
+
+matrix = {}
+for h in range(7):
+    for a in range(7):
+        ph = poisson_probability(final_lambda, h)
+        pa = poisson_probability(final_mu, a)
+        tau = calculate_dixon_coles_adjustment(h, a, final_lambda, final_mu, rho)
+        matrix[(h, a)] = ph * pa * tau
+
+prob_1 = sum(p for (h, a), p in matrix.items() if h > a) * 100
+prob_x = sum(p for (h, a), p in matrix.items() if h == a) * 100
+prob_2 = sum(p for (h, a), p in matrix.items() if a > h) * 100
+prob_away_plus_1 = prob_x + prob_2
+
+prob_hc_minus1 = sum(p for (h, a), p in matrix.items() if h - a >= 2) * 100
+prob_hc_x = sum(p for (h, a), p in matrix.items() if h - a == 1) * 100
+
+prob_u25 = sum(p for (h, a), p in matrix.items() if (h + a) < 2.5) * 100
+prob_o25 = 100 - prob_u25
+
+prob_b01 = (matrix[(0,0)] + matrix[(1,0)] + matrix[(0,1)]) * 100
+prob_b23 = (matrix[(2,0)] + matrix[(0,2)] + matrix[(1,1)] + matrix[(2,1)] + matrix[(1,2)] + matrix[(3,0)] + matrix[(0,3)]) * 100
+prob_b4p = 100.0 - (prob_b01 + prob_b23)
+
+corner_minutes = 96
+base_corner_rate = 10.2 / 90.0
+home_corner_ratio = final_lambda / (final_lambda + final_mu)
+
+c_0_8, c_9_11, c_12_p = 0, 0, 0
+u_95, o_95 = 0, 0
+u_105, o_105 = 0, 0
+race_home, race_away, race_neither = 0, 0, 0
+
+for _ in range(5000):
+    sim_c = 0
+    h_corners, a_corners = 0, 0
+    race_won = False
+    for minute in range(1, corner_minutes + 1):
+        if random.random() < base_corner_rate:
+            sim_c += 1
+            if random.random() < home_corner_ratio: h_corners += 1
+            else: a_corners += 1
+            if not race_won:
+                if h_corners >= 5: race_home += 1; race_won = True
+                elif a_corners >= 5: race_away += 1; race_won = True
+    if not race_won: race_neither += 1
+    if sim_c <= 8: c_0_8 += 1
+    elif 9 <= sim_c <= 11: c_9_11 += 1
+    else: c_12_p += 1
+    if sim_c < 9.5: u_95 += 1
+    else: o_95 += 1
+    if sim_c < 10.5: u_105 += 1
+    else: o_105 += 1
+
+prob_c08 = (c_0_8 / 5000) * 100
+prob_c911 = (c_9_11 / 5000) * 100
+prob_c12p = (c_12_p / 5000) * 100
+prob_u95 = (u_95 / 5000) * 100
+prob_o95 = (o_95 / 5000) * 100
+prob_u105 = (u_105 / 5000) * 100
+prob_o105 = (o_105 / 5000) * 100
+cumulative_under = prob_c08 + prob_c911
+
+prob_race_home = (race_home / 5000) * 100
+prob_race_away = (race_away / 5000) * 100
+prob_race_neither = (race_neither / 5000) * 100
+
+with st.expander("🔎 לחץ כאן לחשיפת דוח החישובים המלא מאחורי הקלעים (NO BLACK BOX)"):
+    col_sub1, col_sub2 = st.columns(2)
+    with col_sub1:
+        st.write("**מנוע שערים (Dixon-Coles):**")
+        st.write(f"• Home Lambda: `{final_lambda:.4f}`")
+        st.write(f"• Away Mu: `{final_mu:.4f}`")
+        st.write(f"• תוחלת שערים כללית: `{final_lambda + final_mu:.2f}` שערים")
+    with col_sub2:
+        st.write("**הסתברויות גולמיות מחושבות:**")
+        st.write(f"• 1X2 גולמי: {prob_1:.1f}% | {prob_x:.1f}% | {prob_2:.1f}%")
+        st.write(f"• בראקט שערים: 0-1 ({prob_b01:.1f}%) | 2-3 ({prob_b23:.1f}%) | 4+ ({prob_b4p:.1f}%)")
+        st.write(f"• בראקט קרנות: 0-8 ({prob_c08:.1f}%) | 9-11 ({prob_c911:.1f}%) | 12+ ({prob_c12p:.1f}%)")
+
+st.write("")
+if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותחת"):
+    with st.spinner("מבצע חישובי עומק מסווגים..."):
+        time.sleep(1)
+        
+        all_bets = []
+        def add_bet(market, selection, prob, current):
+            if current:
+                edge = prob - ((1 / current) * 100)
+                if edge > 0:
+                    narrative = generate_tactical_narrative(market, selection, prob, edge)
+                    all_bets.append({"market": market, "selection": selection, "prob": prob, "odds": current, "edge": edge, "narrative": narrative})
+
+        # טעינה לסינון
+        add_bet("מאני ליין", f"ניצחון {home_name}", prob_1, w_1)
+        add_bet("מאני ליין", "תיקו", prob_x, w_x)
+        add_bet("מאני ליין", f"ניצחון {away_name}", prob_2, w_2)
+        
+        add_bet("הנדיקאפ", f"{home_name} -1", prob_hc_minus1, w_h_minus1)
+        add_bet("הנדיקאפ", "תיקו בהנדיקאפ X", prob_hc_x, w_h_x)
+        add_bet("הנדיקאפ", f"{away_name} +1", prob_away_plus_1, w_h_plus1)
