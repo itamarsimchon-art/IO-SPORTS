@@ -208,12 +208,6 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-def get_base64_image(img_path):
-    if os.path.exists(img_path):
-        with open(img_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode()
-    return ""
-
 # --- ממשק הליגות בצורת 9 עיגולי כדורגל לחיצים ---
 st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ לחץ על כדור הליגה לבחירה ישירה</h3>", unsafe_allow_html=True)
 
@@ -462,4 +456,10 @@ with st.expander("🔎 לחץ כאן לחשיפת דוח החישובים המל
         st.write(f"• בראקט קרנות: 0-8 ({prob_c08:.1f}%) | 9-11 ({prob_c911:.1f}%) | 12+ ({prob_c12p:.1f}%)")
 
 st.write("")
-if st.button("🚀 הרץ ניתוח אומני וחשב ח
+if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותחת"):
+    with st.spinner("מבצע חישובי עומק מסווגים..."):
+        time.sleep(1)
+        
+        all_bets = []
+        def add_bet(market, selection, prob, current):
+            if cu
