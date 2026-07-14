@@ -99,6 +99,16 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
         margin-top: 30px;
     }
+
+    /* העלמת מסגרות הכפתורים והפיכת התמונה עצמה ללחיצה */
+    .stButton > button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        margin: 0 auto !important;
+        display: block !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -156,8 +166,6 @@ def fetch_games_by_league(sport_key):
         return []
 
 def auto_get_weather_multiplier(sport_key):
-    """מנוע אקלים דינמי - משנה טמפרטורה וקואורדינטות לפי הליגה שנבחרה במציאות"""
-    # מפת מיקומים עולמית לפי ליגה
     geo_map = {
         "soccer_israel_premier_league": {"lat": 32.0853, "lon": 34.7818, "name": "ישראל"},
         "soccer_epl": {"lat": 51.5074, "lon": -0.1278, "name": "אנגליה"},
@@ -200,66 +208,58 @@ def generate_tactical_narrative(market, selection, prob, edge):
         return "התפתחות משחק צפויה: מטריצת דיקסון-קולס מזהה פער זניח ביחסי הכוחות המצדיק גיבוי."
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
-def get_base64_image(img_path):
-    if os.path.exists(img_path):
-        with open(img_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode()
-    return ""
-
 # --- ממשק הליגות בצורת 9 עיגולי כדורגל לחיצים ---
-st.markdown("<h3 style='text-align: center; color: #f39c12; margin-bottom: 25px;'>🛡️ לחץ על כדור הליגה לבחירה ישירה</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ לחץ על כדור הליגה לבחירה ישירה</h3>", unsafe_allow_html=True)
 
 if "selected_league" not in st.session_state:
     st.session_state.selected_league = "soccer_israel_premier_league"
 
-def make_soccer_ball_clickable(title, sport_key, file_name):
-    """מייצר עיגול כדורגל לחיץ לחלוטין ללא שום כפתור כתום מכוער של Streamlit"""
-    b64 = get_base64_image(file_name)
-    is_active = st.session_state.selected_league == sport_key
-    
-    # עיצוב מותאם אישית של עיגול זוהר או רגיל
-    border_style = "border: 4px solid #f39c12; box-shadow: 0 0 20px rgba(243, 156, 18, 0.8);" if is_active else "border: 3px solid #1f2937;"
-    title_color = "color: #f39c12; font-weight: 900;" if is_active else "color: #8892b0;"
-    
-    if not b64:
-        b64_html = '<div style="font-size:45px; margin-bottom:10px;">⚽</div>'
-    else:
-        b64_html = f'<img src="data:image/png;base64,{b64}" style="width:110px; height:110px; border-radius:50%; object-fit:cover; {border_style} transition:0.3s; display:block; margin:0 auto; cursor:pointer;">'
-    
-    # הזרקת קומפוננטת HTML נקייה לחלוטין - לחיצה על התמונה מפעילה את השינוי!
-    html_content = f"""
-    <div style="text-align:center; margin-bottom:20px; font-family:'Segoe UI';">
-        <a href="?league={sport_key}" target="_self" style="text-decoration:none;">
-            {b64_html}
-            <span style="display:block; font-size:14px; margin-top:8px; {title_color}">{title}</span>
-        </a>
-    </div>
-    """
-    # שימוש בתיבת ה-HTML של Streamlit כדי לרנדר את הכדור כלחיץ הרמטי
-    st.components.v1.html(html_content, height=160)
+def clickable_soccer_ball(title, sport_key, file_name):
+    """מציג תמונה עגולה של כדורגל שהיא בעצמה הכפתור הרשמי והבטוח של האתר"""
+    try:
+        img_raw = Image.open(file_name)
+        # יצירת חיתוך עגול מושלם מובנה בשרת
+        width, height = img_raw.size
+        min_dim = min(width, height)
+        img_square = img_raw.crop(((width - min_dim) // 2, (height - min_dim) // 2, (width + min_dim) // 2, (height + min_dim) // 2))
+        
+        # הדגשת הכדור שנבחר כרגע באמצעות מסגרת זהב
+        is_active = st.session_state.selected_league == sport_key
+        if is_active:
+            st.markdown(f"<p style='text-align:center; color:#f39c12; font-weight:900; margin-bottom:2px;'>📍 {title}</p>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<p style='text-align:center; color:#8892b0; margin-bottom:2px;'>{title}</p>", unsafe_allow_html=True)
+            
+        # כפתור התמונה הרשמי של Streamlit - בלי מלבנים ובלי HTML שביר!
+        if st.button("", key="img_btn_" + sport_key):
+            st.session_state.selected_league = sport_key
+            st.rerun()
+            
+        # הדבקת התמונה בתוך המיקום של הכפתור
+        st.image(img_square, use_container_width=True)
+    except Exception:
+        # גיבוי למקרה שהקובץ חסר
+        if st.button(f"⚽ {title}", key="fallback_btn_" + sport_key, use_container_width=True):
+            st.session_state.selected_league = sport_key
+            st.rerun()
 
-# קריאת הפרמטר מהקישור במידה והמשתמש לחץ על כדור
-query_params = st.query_params
-if "league" in query_params:
-    st.session_state.selected_league = query_params["league"]
-
-# הצגה סימטרית ב-3 עמודות של הכדורים הלחיצים
+# תצוגה ב-3 עמודות של הכדורים
 col_l1, col_l2, col_l3 = st.columns(3)
 
 with col_l1:
-    make_soccer_ball_clickable("Champions League", "soccer_uefa_champs_league", "cjampions.png")
-    make_soccer_ball_clickable("La Liga", "soccer_spain_la_liga", "spain.png")
-    make_soccer_ball_clickable("Ligue 1", "soccer_france_ligue_one", "france.png")
+    clickable_soccer_ball("Champions League", "soccer_uefa_champs_league", "cjampions.png")
+    clickable_soccer_ball("La Liga", "soccer_spain_la_liga", "spain.png")
+    clickable_soccer_ball("Ligue 1", "soccer_france_ligue_one", "france.png")
 
 with col_l2:
-    make_soccer_ball_clickable("Europa League", "soccer_uefa_europa_league", "eropa.png")
-    make_soccer_ball_clickable("Serie A", "soccer_italy_serie_a", "italia.jpg")
-    make_soccer_ball_clickable("ליגת העל", "soccer_israel_premier_league", "israel.jpg")
+    clickable_soccer_ball("Europa League", "soccer_uefa_europa_league", "eropa.png")
+    clickable_soccer_ball("Serie A", "soccer_italy_serie_a", "italia.jpg")
+    clickable_soccer_ball("ליגת העל", "soccer_israel_premier_league", "israel.jpg")
 
 with col_l3:
-    make_soccer_ball_clickable("Premier League", "soccer_epl", "england.png")
-    make_soccer_ball_clickable("Bundesliga", "soccer_germany_bundesliga", "germany.png")
-    make_soccer_ball_clickable("World Cup / Euro", "soccer_fifa_world_cup", "mondeial.jpg")
+    clickable_soccer_ball("Premier League", "soccer_epl", "england.png")
+    clickable_soccer_ball("Bundesliga", "soccer_germany_bundesliga", "germany.png")
+    clickable_soccer_ball("World Cup / Euro", "soccer_fifa_world_cup", "mondeial.jpg")
 
 st.write("---")
 
@@ -272,7 +272,6 @@ now_utc = datetime.now(timezone.utc)
 
 if raw_games:
     for game in raw_games:
-        # פילטר 2 דקות קשיח (120 שניות לשריקה)
         commence_time_str = game.get("commence_time")
         if commence_time_str:
             try:
@@ -335,6 +334,7 @@ st.markdown("### 💵 הזנת יחסי ווינר בלייב")
 
 tab1, tab2, tab3 = st.tabs(["📊 שוק 1X2 והנדיקאפ", "⚽ שערים ובראקטים", "📐 קרנות ומירוץ ל-5"])
 
+# אכיפת פונקציות קלט סגורות הרמטית ללא שבירות שורה משובשות
 with tab1:
     col_a, col_b, col_c = st.columns(3)
     w_1 = col_a.number_input("ניצחון בית (1):", min_value=1.0, step=0.05, value=float(active_w1))
@@ -460,81 +460,4 @@ with st.expander("🔎 לחץ כאן לחשיפת דוח החישובים המל
     with col_sub2:
         st.write("**הסתברויות גולמיות מחושבות:**")
         st.write(f"• 1X2 גולמי: {prob_1:.1f}% | {prob_x:.1f}% | {prob_2:.1f}%")
-        st.write(f"• בראקט שערים: 0-1 ({prob_b01:.1f}%) | 2-3 ({prob_b23:.1f}%) | 4+ ({prob_b4p:.1f}%)")
-        st.write(f"• בראקט קרנות: 0-8 ({prob_c08:.1f}%) | 9-11 ({prob_c911:.1f}%) | 12+ ({prob_c12p:.1f}%)")
-
-st.write("")
-if st.button("🚀 הרץ ניתוח אומני וחשב חמישייה פותחת"):
-    with st.spinner("מבצע חישובי עומק מסווגים..."):
-        time.sleep(1)
-        
-        all_bets = []
-        def add_bet(market, selection, prob, current):
-            if current:
-                edge = prob - ((1 / current) * 100)
-                if edge > 0:
-                    narrative = generate_tactical_narrative(market, selection, prob, edge)
-                    all_bets.append({"market": market, "selection": selection, "prob": prob, "odds": current, "edge": edge, "narrative": narrative})
-
-        # טעינה לסינון
-        add_bet("מאני ליין", f"ניצחון {home_name}", prob_1, w_1)
-        add_bet("מאני ליין", "תיקו", prob_x, w_x)
-        add_bet("מאני ליין", f"ניצחון {away_name}", prob_2, w_2)
-        
-        add_bet("הנדיקאפ", f"{home_name} -1", prob_hc_minus1, w_h_minus1)
-        add_bet("הנדיקאפ", "תיקו בהנדיקאפ X", prob_hc_x, w_h_x)
-        add_bet("הנדיקאפ", f"{away_name} +1", prob_away_plus_1, w_h_plus1)
-        
-        add_bet("שערים", "מתחת 2.5", prob_u25, w_u25)
-        add_bet("שערים", "מעל 2.5", prob_o25, w_o25)
-        
-        add_bet("בראקט שערים", "0-1", prob_b01, w_b01)
-        add_bet("בראקט שערים", "2-3", prob_b23, w_b23)
-        add_bet("בראקט שערים", "4+", prob_b4p, w_b4p)
-        
-        add_bet("בראקט קרנות", "0-8", prob_c08, w_c08)
-        add_bet("בראקט קרנות", "12+", prob_c12p, w_c12p)
-        
-        add_bet("קרנות 9.5", "מתחת", prob_u95, w_c_u95)
-        add_bet("קרנות 9.5", "מעל", prob_o95, w_c_o95)
-        add_bet("קרנות 10.5", "מתחת", prob_u105, w_c_u105)
-        add_bet("קרנות 10.5", "מעל", prob_o105, w_c_o105)
-        
-        add_bet("מירוץ קרנות", f"{home_name}", prob_race_home, w_race_home)
-        add_bet("מירוץ קרנות", "תיקו", prob_race_neither, w_race_x)
-        add_bet("מירוץ קרנות", f"{away_name}", prob_race_away, w_race_away)
-
-        all_bets.sort(key=lambda x: x["edge"], reverse=True)
-
-        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f39c12; margin-top: 0;'>📋 פסק הדין הסופי - APEX VERDICT</h2>", unsafe_allow_html=True)
-        st.write(f"📊 **תוחלת שערים מחושבת ($npxG$ מנוקה ומכויל):** {final_lambda + final_mu:.2f}")
-        st.write("---")
-        st.markdown("### 🌟 החמישייה הפותחת:")
-        
-        valid_bets_count = 0
-        for bet in all_bets:
-            if valid_bets_count >= 5:
-                break
-                
-            # אכיפת VETO
-            if bet["market"] == "בראקט שערים" and bet["selection"] == "2-3" and w_b23 and 1.80 <= w_b23 <= 1.85:
-                continue
-            if "קרנות" in bet["market"] and ("12+" in bet["selection"] or "מעל" in bet["selection"]) and cumulative_under >= 80.0:
-                continue
-                
-            valid_bets_count += 1
-            st.success(f"🎯 **[RANK {valid_bets_count}]** | **{bet['market']}**: {bet['selection']} | 📊 הסתברות: **{bet['prob']:.2f}%** | ווינר: **{bet['odds']:.2f}** | אדג': **+{bet['edge']:.2f}%**")
-            st.markdown(f"<p style='font-style: italic; color: #a0aec0; margin-right: 20px;'>🧠 {bet['narrative']}</p>", unsafe_allow_html=True)
-
-        if valid_bets_count == 0:
-            st.error("❌ המערכת לא מצאה הימורים בעלי ערך חיובי. חובה לדלג (SKIP)!")
-
-        st.write("---")
-        st.subheader("⛔ דוח וטו ופילטרים פעילים")
-        st.warning("⛔ **[VETO]** הוחל איסור מוחלט על סימון X (9-11) בקרנות.")
-        if w_b23 and 1.80 <= w_b23 <= 1.85: 
-            st.warning(f"⛔ **[VETO_185]** מלכודת 2-3 שערים הופעלה (יחס {w_b23:.2f}). השוק נחסם פיזית למניעת הפסדים.")
-        if cumulative_under >= 80.0:
-            st.warning(f"⛔ **[ANTI_CONTRADICTION_LOCK]** קיר ה-80% הופעל ({cumulative_under:.1f}% לאנדר). סימון קרנות גבוה נחסם למניעת סתירות.")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.write(f"• בראקט שערים: 0-1 ({prob_b01:.1    
