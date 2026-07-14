@@ -208,7 +208,7 @@ def generate_tactical_narrative(market, selection, prob, edge):
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
 # --- ממשק בחירת ליגות מעלף ומטריץ ---
-st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allowed_html=True)
+st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allow_html=True)
 
 # מיפוי רשמי ומדויק כולל ליגת העל הישראלית
 leagues_map = {
@@ -226,35 +226,35 @@ leagues_map = {
 # תצוגת מטריצת הליגות המעוצבת (3x3 עמודות עם Glow)
 col_l1, col_l2, col_l3 = st.columns(3)
 with col_l1:
-    st.markdown('<div class="league-card cl-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card cl-card">', unsafe_allow_html=True)
     btn_cl = st.button("🏆 UEFA Champions League", key="cl")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card es-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card es-card">', unsafe_allow_html=True)
     btn_es = st.button("🇪🇸 La Liga", key="es")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card fr-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card fr-card">', unsafe_allow_html=True)
     btn_fr = st.button("🇫🇷 Ligue 1", key="fr")
     st.markdown('</div>', unsafe_allowed_html=True)
 
 with col_l2:
-    st.markdown('<div class="league-card el-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card el-card">', unsafe_allow_html=True)
     btn_el = st.button("🇪🇺 UEFA Europa League", key="el")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card it-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card it-card">', unsafe_allow_html=True)
     btn_it = st.button("🇮🇹 Serie A", key="it")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card il-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card il-card">', unsafe_allow_html=True)
     btn_il = st.button("🇮🇱 ליגת העל הישראלית", key="il")
     st.markdown('</div>', unsafe_allowed_html=True)
 
 with col_l3:
-    st.markdown('<div class="league-card pl-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card pl-card">', unsafe_allow_html=True)
     btn_pl = st.button("🦁 Premier League", key="pl")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card de-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card de-card">', unsafe_allow_html=True)
     btn_de = st.button("🇩🇪 Bundesliga", key="de")
     st.markdown('</div>', unsafe_allowed_html=True)
-    st.markdown('<div class="league-card wc-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card wc-card">', unsafe_allow_html=True)
     btn_wc = st.button("🌍 World Cup / Euro", key="wc")
     st.markdown('</div>', unsafe_allowed_html=True)
 
