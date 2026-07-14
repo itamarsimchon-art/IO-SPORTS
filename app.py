@@ -100,7 +100,7 @@ st.markdown("""
         margin-top: 30px;
     }
 
-    /* ⚽ סגנון תמונות עיגולי כדורגל ללא לחצני HTML שבירים */
+    /* ⚽ סגנון תמונות עיגולי כדורגל */
     .soccer-ball-img {
         display: block;
         margin-left: auto;
@@ -335,62 +335,4 @@ with tab1:
 
 with tab2:
     col_g, col_h = st.columns(2)
-    w_u25 = col_g.number_input("שערים מתחת 2.5:", min_value=1.0, step=0.05, value=1.90)
-    w_o25 = col_h.number_input("שערים מעל 2.5:", min_value=1.0, step=0.05, value=1.65)
-    col_i, col_j, col_k = st.columns(3)
-    w_b01 = col_i.number_input("שערים 0-1:", min_value=1.0, step=0.05, value=2.95)
-    w_b23 = col_j.number_input("שערים 2-3:", min_value=1.0, step=0.05, value=1.82)
-    w_b4p = col_k.number_input("שערים 4+:", min_value=1.0, step=0.05, value=2.80)
-
-with tab3:
-    col_l, col_m, col_n = st.columns(3)
-    w_c08 = col_l.number_input("קרנות 0-8:", min_value=1.0, step=0.05, value=2.35)
-    w_c911 = col_m.number_input("קרנות 9-11 (X):", min_value=1.0, step=0.05, value=2.45)
-    w_c12p = col_n.number_input("קרנות 12+:", min_value=1.0, step=0.05, value=2.65)
-    col_o, col_p = st.columns(2)
-    w_c_u95 = col_o.number_input("קרנות מתחת 9.5:", min_value=1.0, step=0.05, value=1.85)
-    w_c_o95 = col_p.number_input("קרנות מעל 9.5:", min_value=1.0, step=0.05, value=1.65)
-    col_q, col_r = st.columns(2)
-    w_c_u105 = col_q.number_input("קרנות מתחת 10.5:", min_value=1.0, step=0.05, value=1.60)
-    w_c_o105 = col_r.number_input("קרנות מעל 10.5:", min_value=1.0, step=0.05, value=1.90)
-    col_s, col_t, col_u = st.columns(3)
-    w_race_home = col_s.number_input(f"מירוץ 5 ({home_name}):", min_value=1.0, step=0.05, value=1.70)
-    w_race_x = col_t.number_input("מירוץ 5 (תיקו):", min_value=1.0, step=0.05, value=4.50)
-    w_race_away = col_u.number_input(f"מירוץ 5 ({away_name}):", min_value=1.0, step=0.05, value=2.10)
-
-# --- מעבדה מתמטית ---
-raw_home_npxg = 2.15
-raw_away_npxg = 1.65
-clean_home_npxg = raw_home_npxg - 0.76
-clean_away_npxg = raw_away_npxg
-
-lambda_base = (clean_home_npxg * 0.57) + (clean_away_npxg * 0.43)
-mu_base = (clean_away_npxg * 0.57) + (clean_home_npxg * 0.43)
-
-lambda_multiplier = 1.155 if is_critical else 1.0
-final_lambda = lambda_base * lambda_multiplier * weather_multiplier
-final_mu = mu_base * lambda_multiplier * weather_multiplier
-rho = -0.05
-
-matrix = {}
-for h in range(7):
-    for a in range(7):
-        ph = poisson_probability(final_lambda, h)
-        pa = poisson_probability(final_mu, a)
-        tau = calculate_dixon_coles_adjustment(h, a, final_lambda, final_mu, rho)
-        matrix[(h, a)] = ph * pa * tau
-
-prob_1 = sum(p for (h, a), p in matrix.items() if h > a) * 100
-prob_x = sum(p for (h, a), p in matrix.items() if h == a) * 100
-prob_2 = sum(p for (h, a), p in matrix.items() if a > h) * 100
-prob_away_plus_1 = prob_x + prob_2
-
-prob_hc_minus1 = sum(p for (h, a), p in matrix.items() if h - a >= 2) * 100
-prob_hc_x = sum(p for (h, a), p in matrix.items() if h - a == 1) * 100
-
-prob_u25 = sum(p for (h, a), p in matrix.items() if (h + a) < 2.5) * 100
-prob_o25 = 100 - prob_u25
-
-prob_b01 = (matrix[(0,0)] + matrix[(1,0)] + matrix[(0,1)]) * 100
-prob_b23 = (matrix[(2,0)] + matrix[(0,2)] + matrix[(1,1)] + matrix[(2,1)] + matrix[(1,2)] + matrix[(3,0)] + matrix[(0,3)]) * 100
-prob_b4p = 100.0 -
+    w_u25 = col_g.number_input("שערים מתחת 2.5:", min_value=1.0,
