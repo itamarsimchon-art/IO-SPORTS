@@ -124,20 +124,6 @@ st.markdown("""
     div.fr-card button:hover { border-color: #4caf50 !important; box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; color: #4caf50 !important; }
     div.il-card button:hover { border-color: #f39c12 !important; box-shadow: 0 0 15px rgba(243, 156, 18, 0.6) !important; color: #f39c12 !important; }
     div.wc-card button:hover { border-color: #00efff !important; box-shadow: 0 0 15px rgba(0, 239, 255, 0.6) !important; color: #00efff !important; }
-
-    /* עיצוב עיגול הכדורגל לתמונת הליגה שנבחרה */
-    .soccer-ball-img {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid #f39c12;
-        box-shadow: 0 0 20px rgba(243, 156, 18, 0.6), inset 0 0 15px rgba(0,0,0,0.5);
-        transition: 0.5s;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -145,15 +131,9 @@ st.markdown("""
 # טעינת הלוגו - צייד אוטומטי
 # ---------------------------------------------------------
 image_files = glob.glob("*.jfif") + glob.glob("*.jpg") + glob.glob("*.png") + glob.glob("*.jpeg")
-# סינון קבצי הליגות כדי שלא ייבחרו בטעות כלוגו הראשי
-filtered_logo_files = [f for f in image_files if f not in [
-    'cjampions.png', 'england.png', 'eropa.png', 'france.png', 
-    'germany.png', 'israel.jpg', 'italia.jpg', 'mondeial.jpg', 'spain.png'
-]]
-
-if filtered_logo_files:
+if image_files:
     try:
-        img = Image.open(filtered_logo_files[0])
+        img = Image.open(image_files[0])
         st.image(img, use_container_width=True)
     except:
         st.markdown("<h1 style='text-align: center; color: #f39c12;'>I & O SPORTS ANALYTICS</h1>", unsafe_allow_html=True)
@@ -199,7 +179,7 @@ def fetch_games_by_league(sport_key):
 
 def auto_get_weather_multiplier(city):
     context = ssl._create_unverified_context()
-    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current_weather=true" # ברירת מחדל לארץ
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, context=context, timeout=4) as response:
@@ -228,71 +208,59 @@ def generate_tactical_narrative(market, selection, prob, edge):
     return "התפתחות משחק צפויה: פערי כוחות טהורים במודל 11vs11 מציגים יתרון מתמטי שלא מגולם ביחס."
 
 # --- ממשק בחירת ליגות מעלף ומטריץ ---
-st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #f39c12;'>🛡️ בחר מפעל / ליגה לסריקה</h3>", unsafe_allowed_html=True)
 
-# מיפוי קשיח בין הלחצנים למזהי ה-API
+# מיפוי רשמי ומדויק כולל ליגת העל הישראלית
 leagues_map = {
-    "cl": "soccer_uefa_champs_league",
-    "el": "soccer_uefa_europa_league",
-    "pl": "soccer_epl",
-    "es": "soccer_spain_la_liga",
-    "it": "soccer_italy_serie_a",
-    "de": "soccer_germany_bundesliga",
-    "fr": "soccer_france_ligue_one",
-    "il": "soccer_israel_premier_league",
-    "wc": "soccer_fifa_world_cup"
+    "🏆 Champions League": "soccer_uefa_champs_league",
+    "🇪🇺 Europa League": "soccer_uefa_europa_league",
+    "🦁 Premier League": "soccer_epl",
+    "🇪🇸 La Liga": "soccer_spain_la_liga",
+    "🇮🇹 Serie A": "soccer_italy_serie_a",
+    "🇩🇪 Bundesliga": "soccer_germany_bundesliga",
+    "🇫🇷 Ligue 1": "soccer_france_ligue_one",
+    "🇮🇱 ליגת העל הישראלית": "soccer_israel_premier_league",
+    "🌍 World Cup / Euro": "soccer_fifa_world_cup"
 }
 
-# מיפוי קשיח בין הלחצנים לקבצי התמונות שהעליתם
-images_map = {
-    "soccer_uefa_champs_league": "cjampions.png",
-    "soccer_uefa_europa_league": "eropa.png",
-    "soccer_epl": "england.png",
-    "soccer_spain_la_liga": "spain.png",
-    "soccer_italy_serie_a": "italia.jpg",
-    "soccer_germany_bundesliga": "germany.png",
-    "soccer_france_ligue_one": "france.png",
-    "soccer_israel_premier_league": "israel.jpg",
-    "soccer_fifa_world_cup": "mondeial.jpg"
-}
-
+# תצוגת מטריצת הליגות המעוצבת (3x3 עמודות עם Glow)
 col_l1, col_l2, col_l3 = st.columns(3)
 with col_l1:
-    st.markdown('<div class="league-card cl-card">', unsafe_allow_html=True)
-    btn_cl = st.button("🏆 UEFA Champions League", key="btn_cl")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card es-card">', unsafe_allow_html=True)
-    btn_es = st.button("🇪🇸 La Liga", key="btn_es")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card fr-card">', unsafe_allow_html=True)
-    btn_fr = st.button("🇫🇷 Ligue 1", key="btn_fr")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="league-card cl-card">', unsafe_allowed_html=True)
+    btn_cl = st.button("🏆 UEFA Champions League", key="cl")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card es-card">', unsafe_allowed_html=True)
+    btn_es = st.button("🇪🇸 La Liga", key="es")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card fr-card">', unsafe_allowed_html=True)
+    btn_fr = st.button("🇫🇷 Ligue 1", key="fr")
+    st.markdown('</div>', unsafe_allowed_html=True)
 
 with col_l2:
-    st.markdown('<div class="league-card el-card">', unsafe_allow_html=True)
-    btn_el = st.button("🇪🇺 UEFA Europa League", key="btn_el")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card it-card">', unsafe_allow_html=True)
-    btn_it = st.button("🇮🇹 Serie A", key="btn_it")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card il-card">', unsafe_allow_html=True)
-    btn_il = st.button("🇮🇱 ליגת העל הישראלית", key="btn_il")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="league-card el-card">', unsafe_allowed_html=True)
+    btn_el = st.button("🇪🇺 UEFA Europa League", key="el")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card it-card">', unsafe_allowed_html=True)
+    btn_it = st.button("🇮🇹 Serie A", key="it")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card il-card">', unsafe_allowed_html=True)
+    btn_il = st.button("🇮🇱 ליגת העל הישראלית", key="il")
+    st.markdown('</div>', unsafe_allowed_html=True)
 
 with col_l3:
-    st.markdown('<div class="league-card pl-card">', unsafe_allow_html=True)
-    btn_pl = st.button("🦁 Premier League", key="btn_pl")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card de-card">', unsafe_allow_html=True)
-    btn_de = st.button("🇩🇪 Bundesliga", key="btn_de")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('<div class="league-card wc-card">', unsafe_allow_html=True)
-    btn_wc = st.button("🌍 World Cup / Euro", key="btn_wc")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="league-card pl-card">', unsafe_allowed_html=True)
+    btn_pl = st.button("🦁 Premier League", key="pl")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card de-card">', unsafe_allowed_html=True)
+    btn_de = st.button("🇩🇪 Bundesliga", key="de")
+    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('<div class="league-card wc-card">', unsafe_allowed_html=True)
+    btn_wc = st.button("🌍 World Cup / Euro", key="wc")
+    st.markdown('</div>', unsafe_allowed_html=True)
 
-# ניהול סטטוס הליגה בזיכרון האתר
+# ניהול סטטוס בחירת הליגה
 if "selected_league" not in st.session_state:
-    st.session_state.selected_league = "soccer_israel_premier_league"
+    st.session_state.selected_league = "soccer_israel_premier_league" # ליגת העל כברירת מחדל לאתר מקומי
 
 if btn_cl: st.session_state.selected_league = "soccer_uefa_champs_league"
 elif btn_el: st.session_state.selected_league = "soccer_uefa_europa_league"
@@ -303,24 +271,6 @@ elif btn_de: st.session_state.selected_league = "soccer_germany_bundesliga"
 elif btn_fr: st.session_state.selected_league = "soccer_france_ligue_one"
 elif btn_il: st.session_state.selected_league = "soccer_israel_premier_league"
 elif btn_wc: st.session_state.selected_league = "soccer_fifa_world_cup"
-
-# ---------------------------------------------------------
-# ⚽ הצגת עיגול הכדורגל המטריף של הליגה שנבחרה
-# ---------------------------------------------------------
-selected_img_name = images_map.get(st.session_state.selected_league, "israel.jpg")
-if os.path.exists(selected_img_name):
-    try:
-        # פתיחה ובדיקת קיום הקובץ
-        img_league = Image.open(selected_img_name)
-        # שימוש בטכניקת קידוד בסיסית ב-Streamlit להצגת העיגול ב-HTML
-        import base64
-        with open(selected_img_name, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode()
-        st.markdown(f'<img src="data:image/png;base64,{encoded_string}" class="soccer-ball-img">', unsafe_allow_html=True)
-    except Exception:
-        pass
-
-st.write("")
 
 # שאיבה מהשרת הגלובלי
 with st.spinner("מעדכן תוכנייה חיה מהאינטרנט..."):
@@ -360,7 +310,7 @@ has_active_games = len(games_list) > 0
 
 if not has_active_games:
     st.warning("ℹ️ לא נמצאו משחקים פעילים בתוכנייה של ליגה זו להיום (פגרה / אין משחקים). באפשרותך לבצע הזנה ידנית של משחק בתיבה למטה.")
-    games_list = [{"home": "בית''ר ירושלים", "away": "הפועל באר שבע", "w_1": 2.30, "w_x": 3.20, "w_2": 2.80}]
+    games_list = [{"home": "מכבי תל אביב", "away": "מכבי חיפה", "w_1": 2.20, "w_x": 3.10, "w_2": 2.90}]
 
 # בניית תפריט הגלילה
 if has_active_games:
